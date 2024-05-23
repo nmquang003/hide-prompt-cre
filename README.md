@@ -18,7 +18,7 @@ python run.py \
     --prompt_pool_lr 1e-4 \
     --classifier_epochs 250 \
     --seed 2021 \
-    --bert_path datasets/bert-base-uncased \
+    --bert_path bert-base-uncased \
     --data_path datasets \
     --prompt_length 8 \
     --prompt_top_k 4 \
@@ -31,5 +31,6 @@ python run.py \
 ```
 
 
-
+Có 5 seed: 2021, 2121, 2221, 2321, 2421
+Dataname: TACRED, FewRel
 
