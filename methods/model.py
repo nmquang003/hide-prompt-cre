@@ -18,8 +18,6 @@ class ClassifierBasic(nn.Module):
     def forward(self, x):
         return self.head(x)
 
-
-
 class Classifier(nn.Module):
     def __init__(self, args):
         super().__init__()
