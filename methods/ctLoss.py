@@ -16,10 +16,11 @@ def contrastive_loss(reps, pos_reps, neg_reps):
     - neg_reps: tensor (N, Q) - Biểu diễn của các điểm dữ liệu âm
     """
     # Tính cosine similarity giữa reps và pos_reps
-    pos_sim = sim(reps, pos_reps)
+    pos_sims = sim(reps, pos_reps)
     # Tính cosine similarity giữa reps và neg_reps
-    neg_sim = sim(reps, neg_reps)
+    neg_sims = sim(reps, neg_reps)
     
     # Tính loss
-    loss = torch.mean(-torch.log(torch.sigmoid(pos_sim)) - torch.log(1 - torch.sigmoid(neg_sim)))
+    loss = torch.mean(-torch.log(torch.sigmoid(pos_sims)) - \
+    torch.log(1 - torch.sigmoid(neg_sims)))
     return loss
