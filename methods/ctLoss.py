@@ -8,7 +8,7 @@ def sim(a, b):
     """
     return F.cosine_similarity(a, b, dim=-1)
 
-def contrastive_loss(reps, pos_reps, neg_reps):
+def contrastive_loss(reps, pos_reps, neg_reps, temperature=0.5):
     """
     Hàm loss cho mô hình Contrastive Learning
     - reps: tensor (N, D) - Biểu diễn của các điểm dữ liệu
@@ -16,11 +16,11 @@ def contrastive_loss(reps, pos_reps, neg_reps):
     - neg_reps: tensor (N, Q) - Biểu diễn của các điểm dữ liệu âm
     """
     # Tính cosine similarity giữa reps và pos_reps
-    pos_sims = sim(reps, pos_reps)
+    pos_sims = torch.exp(sim(reps, pos_reps) / temperature)
     # Tính cosine similarity giữa reps và neg_reps
-    neg_sims = sim(reps, neg_reps)
-    
+    neg_sims = torch.exp(sim(reps, neg_reps) / temperature)
+    # Tính tỷ lệ softmax giữa pos_sims và neg_sims
+    softmax = pos_sims / (pos_sims + neg_sims)
     # Tính loss
-    loss = torch.mean(-torch.log(torch.sigmoid(pos_sims)) - \
-    torch.log(1 - torch.sigmoid(neg_sims)))
+    loss = -torch.log(softmax).mean()
     return loss
