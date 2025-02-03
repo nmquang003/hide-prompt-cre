@@ -124,8 +124,9 @@ class Manager(object):
                     total_hits += (pred == targets).float().sum().data.cpu().numpy().item()
 
                     # loss components
-                    CE_loss = F.cross_entropy(input=reps, target=targets, reduction="mean")
-                    loss = CE_loss
+                    CE_loss = F.cross_entropy(input=reps, target=targets, reduction="mean") # cross entropy loss
+                    CT_loss =  # contrastive loss
+                    loss = CE_loss + CT_loss
                     losses.append(loss.item())
                     loss.backward()
 
@@ -452,7 +453,7 @@ class Manager(object):
                 test_total.append(total_acc)
 
                 acc_sum =[]
-                print("===UNTIL-NOW==")
+                print("===UNTIL-NOW===")
                 print("accuracies:")
                 for x in test_cur:
                     print(x)

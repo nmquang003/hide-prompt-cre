@@ -2,7 +2,7 @@
 
 ```bash
 pip install transformers
-pip install gypytorch
+pip install gypytorch==1.0
 ```
 
 

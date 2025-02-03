@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from .backbone import BertRelationEncoder
 
 
-class ClassifierBasic(nn.Module):
+class Classifier(nn.Module):
     def __init__(self, args):
         super().__init__()
         self.head = nn.Sequential(
@@ -18,7 +18,7 @@ class ClassifierBasic(nn.Module):
     def forward(self, x):
         return self.head(x)
 
-class Classifier(nn.Module):
+class ClassifierBasic(nn.Module):
     def __init__(self, args):
         super().__init__()
         self.head = nn.Sequential(

@@ -7,6 +7,8 @@ class Param:
         parser = argparse.ArgumentParser()
         parser = self.all_param(parser)
         all_args, unknown = parser.parse_known_args()
+        for unknown_arg in unknown:
+            print(f"Unknown argument: {unknown_arg}")
         self.args = all_args
 
     def all_param(self, parser):

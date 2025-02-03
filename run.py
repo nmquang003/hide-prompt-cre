@@ -33,7 +33,12 @@ if __name__ == "__main__":
     args.task_name = args.dataname
 
     # rel_per_task
-    args.rel_per_task = 8 if args.dataname == "FewRel" else 4
+    if args.dataname == "FewRel":
+        args.rel_per_task = 8
+    elif args.dataname == "TACRED":
+        args.rel_per_task = 4
+    else:
+        raise ValueError("Invalid dataname")
 
     # Run
     run(args)
