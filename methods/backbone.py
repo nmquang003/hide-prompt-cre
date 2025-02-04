@@ -94,4 +94,9 @@ class BertRelationEncoder(nn.Module):
         output = torch.cat(output, dim=0)
         output = output.view(output.shape[0], -1)
         out["x_encoded"] = output
+        
+        # Extract CLS token representation
+        cls_token_representation = out["attention_out"][:, 0, :]  # Assuming CLS token is at position 0
+        out["cls_representation"] = cls_token_representation
+
         return out
