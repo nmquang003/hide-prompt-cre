@@ -8,7 +8,7 @@ def sim(a, b):
     """
     return F.cosine_similarity(a, b, dim=-1)
 
-def contrastive_loss(reps, pos_reps, neg_reps, temperature=0.5):
+def CT_loss(reps, pos_reps, neg_reps, temperature=0.5):
     """
     Hàm loss cho mô hình Contrastive Learning
     - reps: tensor (N, D) - Biểu diễn của các điểm dữ liệu
