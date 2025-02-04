@@ -6,6 +6,7 @@ from .model import *
 from .backbone import *
 from .prompt import *
 from .utils import *
+from .ct_loss import CT_loss, sim
 
 import torch
 import torch.optim as optim
