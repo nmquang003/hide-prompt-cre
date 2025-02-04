@@ -6,7 +6,7 @@ from .model import *
 from .backbone import *
 from .prompt import *
 from .utils import *
-from .ct_loss import CT_loss, sim
+from .ct_loss import constractive_loss, sim
 
 import torch
 import torch.optim as optim
@@ -126,7 +126,7 @@ class Manager(object):
 
                     # loss components
                     CE_loss = F.cross_entropy(input=reps, target=targets, reduction="mean") # cross entropy loss
-                    CT_loss =  # contrastive loss
+                    CT_loss =  0 # contrastive loss
                     loss = CE_loss + CT_loss
                     losses.append(loss.item())
                     loss.backward()
@@ -392,7 +392,12 @@ class Manager(object):
 
             # memory
             for i, relation in enumerate(current_relations):
-                self.memorized_samples[sampler.rel2id[relation]] = self.sample_memorized_data(args, encoder, self.prompt_pools[steps], training_data[relation], f"sampling_relation_{i+1}={relation}", steps)
+                self.memorized_samples[sampler.rel2id[relation]] = self.sample_memorized_data(args, 
+                                                                                              encoder, 
+                                                                                              self.prompt_pools[steps], 
+                                                                                              training_data[relation], 
+                                                                                              f"sampling_relation_{i+1}={relation}", 
+                                                                                              steps)
 
             # replay data for classifier
             for relation in current_relations:
@@ -434,7 +439,11 @@ class Manager(object):
                 print("===NON-SWAG===")
                 results = []
                 for i, i_th_test_data in enumerate(all_tasks):
-                    results.append([len(i_th_test_data), self.evaluate_strict_model(args, encoder, classifier, prompted_classifier, i_th_test_data, f"test_task_{i+1}", steps)])
+                    results.append([
+                        len(i_th_test_data), 
+                        self.evaluate_strict_model(args, encoder, classifier, prompted_classifier, 
+                                                    i_th_test_data, f"test_task_{i+1}", steps)
+                    ])
                 cur_acc = results[-1][1]
                 total_acc = sum([result[0] * result[1] for result in results]) / sum([result[0] for result in results])
                 print(f"current test accuracy: {cur_acc}")
@@ -445,7 +454,11 @@ class Manager(object):
                 print("===SWAG===")
                 results = []
                 for i, i_th_test_data in enumerate(all_tasks):
-                    results.append([len(i_th_test_data), self.evaluate_strict_model(args, encoder, swag_classifier, swag_prompted_classifier, i_th_test_data, f"test_task_{i+1}", steps)])
+                    results.append([
+                        len(i_th_test_data), 
+                        self.evaluate_strict_model(args, encoder, swag_classifier, swag_prompted_classifier, 
+                                                   i_th_test_data, f"test_task_{i+1}", steps)
+                    ])
                 cur_acc = results[-1][1]
                 total_acc = sum([result[0] * result[1] for result in results]) / sum([result[0] for result in results])
                 print(f"current test accuracy: {cur_acc}")
@@ -475,4 +488,8 @@ class Manager(object):
                     pickle.dump(results, file)
 
 
-        del self.memorized_samples, self.prompt_pools, all_train_tasks, all_tasks, seen_data, results, encoder, self.id2taskid, sampler, self.replayed_data, self.replayed_key, test_cur, test_total
+        del self.memorized_samples, 
+        self.prompt_pools, all_train_tasks, 
+        all_tasks, seen_data, results, encoder, 
+        self.id2taskid, sampler, self.replayed_data, 
+        self.replayed_key, test_cur, test_total
