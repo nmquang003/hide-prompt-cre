@@ -363,7 +363,8 @@ class Manager(object):
         all_tasks = []
         seen_data = {}
 
-        for steps, (training_data, valid_data, test_data, current_relations, historic_test_data, seen_relations) in enumerate(sampler):
+        for steps, (training_data, valid_data, test_data, current_relations, 
+                    historic_test_data, seen_relations) in enumerate(sampler):
             print("=" * 100)
             print(f"task={steps+1}")
             print(f"current relations={current_relations}")
