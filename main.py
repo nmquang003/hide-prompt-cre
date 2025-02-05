@@ -18,8 +18,8 @@ class Config:
 
 args = {
     "gpu": 0,
-    "dataname": "FewRel",
-    "task_name": "FewRel",
+    "dataname": "TACRED",
+    "task_name": "TACRED",
     "device": "cuda",
     "batch_size": 16,
     "num_tasks": 10,
@@ -44,7 +44,7 @@ args = {
     "seed": 2021,
     "max_grad_norm": 10,
     "data_path": "datasets/",
-    "bert_path": "datasets/bert-base-uncased",
+    "bert_path": "bert-base-uncased",
     "cov_mat": True,
     "max_num_models": 10,
     "sample_freq": 20,
@@ -58,3 +58,14 @@ args = {
 }
 
 config = Config(**args)
+
+from dataloaders.sampler import data_sampler
+
+sampler = data_sampler(config)
+
+for steps, (training_data, valid_data, test_data, current_relations, 
+                    historic_test_data, seen_relations, seen_descriptions) in enumerate(sampler):
+
+    print(len(training_data))
+    print("="*20)
+    print(len(seen_descriptions))
