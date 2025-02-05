@@ -7,7 +7,7 @@ per:charges	person charges	a person was charged with an event
 per:countries_of_residence	person countries of residence	a person is living in a country
 per:country_of_birth	person country of birth	a person was born in a country
 per:stateorprovinces_of_residence	person stateorprovinces of residence	a person is living in a state or province
-zwebsite	organization website	an organization 's website is an url
+org:website	organization website	an organization 's website is an url
 per:cities_of_residence	person cities of residence	a person is living in a city
 per:parents	person parents	a person 's parent is a person
 per:employee_of	person employee of	a person is an employee of an organization
