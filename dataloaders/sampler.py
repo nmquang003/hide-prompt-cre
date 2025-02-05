@@ -107,7 +107,7 @@ class data_sampler(object):
             rel = self.id2rel[index]
             current_relations.append(rel)
             self.seen_relations.append(rel)
-            self.seen_descriptions[rel] = self.rel2desc[rel]
+            self.seen_descriptions[rel] = self.rel2desc[rel]["token_ids"]
             cur_training_data[rel] = self.training_dataset[index]
             cur_valid_data[rel] = self.valid_dataset[index]
             cur_test_data[rel] = self.test_dataset[index]
@@ -177,6 +177,10 @@ class data_sampler(object):
         des = pd.read_csv(file, sep="\t", header=None)
         rel2desc = {}
         for i in range(len(des)):
-            rel2desc[des[0][i]] = des[2][i]
+            token_ids = self.tokenizer.encode(des[2][i], padding="max_length", truncation=True, max_length=self.args.max_length)
+            rel2desc[des[0][i]] = {
+                "description": des[2][i],
+                "token_ids": token_ids
+            }
             
         return rel2desc
