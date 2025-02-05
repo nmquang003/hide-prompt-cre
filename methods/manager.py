@@ -102,7 +102,7 @@ class Manager(object):
             td = tqdm(data_loader_, desc=name)
 
             sampled = 0
-            total_hits = 0
+            total_hits = 0 
 
             for step, (labels, tokens, _) in enumerate(td):
                 try:
@@ -364,7 +364,7 @@ class Manager(object):
         seen_data = {}
 
         for steps, (training_data, valid_data, test_data, current_relations, 
-                    historic_test_data, seen_relations) in enumerate(sampler):
+                    historic_test_data, seen_relations, seen_descriptions) in enumerate(sampler):
             print("=" * 100)
             print(f"task={steps+1}")
             print(f"current relations={current_relations}")
@@ -389,16 +389,15 @@ class Manager(object):
 
             # new prompt pool
             self.prompt_pools.append(Prompt(args).to(args.device))
-            self.train_prompt_pool(args, encoder, self.prompt_pools[-1], cur_training_data, task_id=steps)
+            self.train_prompt_pool(args, encoder, self.prompt_pools[-1], 
+                                   cur_training_data, task_id=steps)
 
             # memory
             for i, relation in enumerate(current_relations):
-                self.memorized_samples[sampler.rel2id[relation]] = self.sample_memorized_data(args, 
-                                                                                              encoder, 
-                                                                                              self.prompt_pools[steps], 
-                                                                                              training_data[relation], 
-                                                                                              f"sampling_relation_{i+1}={relation}", 
-                                                                                              steps)
+                self.memorized_samples[sampler.rel2id[relation]] = \
+                self.sample_memorized_data(args, encoder, self.prompt_pools[steps], 
+                                           training_data[relation], 
+                                           f"sampling_relation_{i+1}={relation}", steps)
 
             # replay data for classifier
             for relation in current_relations:

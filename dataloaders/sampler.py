@@ -3,13 +3,13 @@ import random
 import json, os
 from transformers import BertTokenizer
 import numpy as np
+import pandas as pd
 
 
 def get_tokenizer(args):
     tokenizer = BertTokenizer.from_pretrained(
         args.bert_path, additional_special_tokens=["[E11]", "[E12]", "[E21]", "[E22]"])
     return tokenizer
-
 
 def extract_tokens_between_markers(tokens, start_marker, end_marker):
     start_idx = tokens.index(start_marker)
@@ -34,6 +34,9 @@ class data_sampler(object):
 
         # read relation data
         self.id2rel, self.rel2id = self._read_relations(args.relation_file)
+        
+        # read relation description
+        self.rel2desc = self._read_description(args.description_file)
 
         # random sampling
         self.seed = seed
@@ -52,6 +55,7 @@ class data_sampler(object):
 
         # record relations
         self.seen_relations = []
+        self.seen_descriptions = {}
         self.history_test_data = {}
 
     def set_path(self, args):
@@ -66,6 +70,7 @@ class data_sampler(object):
         elif args.dataname in ["TACRED"]:
             args.data_file = os.path.join(args.data_path, "data_with{}_marker_tacred.json".format(use_marker))
             args.relation_file = os.path.join(args.data_path, "id2rel_tacred.json")
+            args.description_file = os.path.join(args.data_path, "TACRED/relation_description.txt")
             args.num_of_relation = 40
             args.num_of_train = 420
             args.num_of_val = 140
@@ -87,7 +92,10 @@ class data_sampler(object):
         if self.batch == self.task_length:
             raise StopIteration()
 
-        indexs = self.shuffle_index[self.args.rel_per_task * self.batch : self.args.rel_per_task * (self.batch + 1)]
+        indexs = self.shuffle_index[
+            self.args.rel_per_task * self.batch : 
+            self.args.rel_per_task * (self.batch + 1)
+        ]
         self.batch += 1
 
         current_relations = []
@@ -96,14 +104,17 @@ class data_sampler(object):
         cur_test_data = {}
 
         for index in indexs:
-            current_relations.append(self.id2rel[index])
-            self.seen_relations.append(self.id2rel[index])
-            cur_training_data[self.id2rel[index]] = self.training_dataset[index]
-            cur_valid_data[self.id2rel[index]] = self.valid_dataset[index]
-            cur_test_data[self.id2rel[index]] = self.test_dataset[index]
-            self.history_test_data[self.id2rel[index]] = self.test_dataset[index]
+            rel = self.id2rel[index]
+            current_relations.append(rel)
+            self.seen_relations.append(rel)
+            self.seen_descriptions[rel] = self.rel2desc[rel]
+            cur_training_data[rel] = self.training_dataset[index]
+            cur_valid_data[rel] = self.valid_dataset[index]
+            cur_test_data[rel] = self.test_dataset[index]
+            self.history_test_data[rel] = self.test_dataset[index]
 
-        return cur_training_data, cur_valid_data, cur_test_data, current_relations, self.history_test_data, self.seen_relations
+        return cur_training_data, cur_valid_data, cur_test_data, \
+               current_relations, self.history_test_data, self.seen_relations, self.seen_descriptions
 
     def _read_data(self, file):
         if os.path.isfile(self.save_data_path):
@@ -125,7 +136,7 @@ class data_sampler(object):
                 count1 = 0
                 for i, sample in enumerate(rel_samples):
                     tokenized_sample = {}
-                    tokenized_sample["relation"] = self.rel2id[sample["relation"]]
+                    tokenized_sample["relation"] = self.rel2id[ "relation"]
                     
                     text = extract_tokens_between_markers(sample["tokens"], "[E11]", "[E12]") \
                         + "[MASK]" \
@@ -139,7 +150,7 @@ class data_sampler(object):
                         if i < self.args.num_of_train:
                             train_dataset[self.rel2id[relation]].append(tokenized_sample)
                         elif i < self.args.num_of_train + self.args.num_of_val:
-                            val_dataset[self.rel2id[relation]].append(tokenized_sample)
+                             [self.rel2id[relation]].append(tokenized_sample)
                         else:
                             test_dataset[self.rel2id[relation]].append(tokenized_sample)
                     else:
@@ -161,3 +172,11 @@ class data_sampler(object):
         for i, x in enumerate(id2rel):
             rel2id[x] = i
         return id2rel, rel2id
+    
+    def _read_description(self, file):
+        des = pd.read_csv(file, sep="\t", header=None)
+        rel2desc = {}
+        for i in range(len(des)):
+            rel2desc[des[0][i]] = des[2][i]
+            
+        return rel2desc
