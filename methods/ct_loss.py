@@ -15,20 +15,32 @@ def sim(A, B):
     # Tính cosine similarity giữa A và B
     return torch.einsum("nd,nmd->nm", A, B) # (N, M)
 
+def contrastive_loss(reps, targets, descriptions, temperature=5):
+    """
+    Tính loss kiểu -log(sim(x, des(x)) / sim(x, des))
+    
+    - reps: Tensor (N, D), biểu diễn đặc trưng của các mẫu
+    - targets: Tensor (N,), nhãn tương ứng của reps
+    - descriptions: Dict[int, Tensor], ánh xạ nhãn đến mô tả (M, D)
+    - temperature: Hệ số nhiệt độ để điều chỉnh độ sắc nét của phân phối
+    
+    Trả về:
+    - loss: Giá trị tổn thất trung bình
+    """
+    device = reps.device
+    
+    # Tạo tensor description tương ứng với từng mẫu trong reps
+    desc_tensors = torch.stack([descriptions[int(label)] for label in targets]).to(device)  # (N, M, D)
+    
+    # Tính cosine similarity
+    similarities = sim(reps, desc_tensors) / temperature  # (N, M)
+    
+    # Lấy similarity giữa reps và descriptions tương ứng
+    pos_sim = similarities[:, 0]  # (N,)
+    
+    # Tính loss theo công thức: -log(sim(x, des(x)) / sum(sim(x, des)))
+    loss = -torch.log(pos_sim / similarities.sum(dim=1))
+    
+    return loss.mean()
 
-def constractive_loss(reps, pos_reps, neg_reps, temperature=5):
-    """
-    Hàm loss cho mô hình Contrastive Learning
-    - reps: tensor (N, D) - Biểu diễn của các điểm dữ liệu
-    - pos_reps: tensor (N, P) - Biểu diễn của các điểm dữ liệu dương
-    - neg_reps: tensor (N, Q) - Biểu diễn của các điểm dữ liệu âm
-    """
-    # Tính cosine similarity giữa reps và pos_reps
-    pos_sims = torch.exp(sim(reps, pos_reps).mean(dim=1) / temperature)
-    # Tính cosine similarity giữa reps và neg_reps
-    neg_sims = torch.exp(sim(reps, neg_reps).mean(dim=1) / temperature)
-    # Tính tỷ lệ softmax giữa pos_sims và neg_sims
-    softmax = pos_sims / (pos_sims + neg_sims)
-    # Tính loss
-    loss = -torch.log(softmax).mean()
-    return loss
+

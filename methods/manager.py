@@ -105,7 +105,7 @@ class Manager(object):
             total_hits = 0 
 
             for step, (labels, tokens, _) in enumerate(td):
-                try:
+                # try:
                     optimizer.zero_grad()
 
                     # batching
@@ -113,11 +113,17 @@ class Manager(object):
                     targets = labels.type(torch.LongTensor).to(args.device)
                     tokens = torch.stack([x.to(args.device) for x in tokens], dim=0)
                     
+                    # print("="*20)
+                    # print(targets.shape)
+                    # print(targets)
+                    # print("="*20)
+                    # print(tokens.shape)
+
                     # encoder forward
                     encoder_out = encoder(tokens)
-                    pos_description_out = encoder(seen_description[self.id2rel[labels]]['token_ids'])
-                    neg_description_out = [encoder(seen_description[self.id2rel[rel]]['token_ids']) \
-                                           for rel in seen_description.keys() if rel != self.id2rel[labels]]
+                    description_out = {}
+                    for rel, des in seen_description:
+                        description_out[self.rel2id[rel]] = encoder(des['token_ids'])
                     # classifier forward
                     reps = classifier(encoder_out["x_encoded"])
 
@@ -128,7 +134,7 @@ class Manager(object):
 
                     # loss components
                     CE_loss = F.cross_entropy(input=reps, target=targets, reduction="mean") # cross entropy loss
-                    CT_loss =  constractive_loss(encoder_out, pos_description_out, neg_description_out) # constractive loss
+                    CT_loss =  constractive_loss(encoder_out, targets, description_out) # constractive loss
                     loss = CE_loss + CT_loss
                     losses.append(loss.item())
                     loss.backward()
@@ -139,8 +145,8 @@ class Manager(object):
 
                     # display
                     td.set_postfix(loss=np.array(losses).mean(), acc=total_hits / sampled)
-                except:
-                    continue
+                # except:
+                #     continue
 
         for e_id in range(args.encoder_epochs):
             train_data(data_loader, f"train_encoder_epoch_{e_id + 1}", e_id)
@@ -387,7 +393,7 @@ class Manager(object):
 
             # train encoder
             if steps == 0:
-                self.train_encoder(args, encoder, cur_training_data, task_id=steps)
+                self.train_encoder(args, encoder, cur_training_data, seen_descriptions, task_id=steps)
 
             # new prompt pool
             self.prompt_pools.append(Prompt(args).to(args.device))
