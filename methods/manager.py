@@ -84,7 +84,7 @@ class Manager(object):
                 swag_classifier.sample(0.0)
                 bn_update(data_loader, swag_classifier)
 
-    def train_encoder(self, args, encoder, training_data, task_id):
+    def train_encoder(self, args, encoder, training_data, seen_description, task_id):
         encoder.train()
         classifier = Classifier(args=args).to(args.device)
         classifier.train()
@@ -112,10 +112,12 @@ class Manager(object):
                     sampled += len(labels)
                     targets = labels.type(torch.LongTensor).to(args.device)
                     tokens = torch.stack([x.to(args.device) for x in tokens], dim=0)
-
+                    
                     # encoder forward
                     encoder_out = encoder(tokens)
-
+                    pos_description_out = encoder(seen_description[self.id2rel[labels]]['token_ids'])
+                    neg_description_out = [encoder(seen_description[self.id2rel[rel]]['token_ids']) \
+                                           for rel in seen_description.keys() if rel != self.id2rel[labels]]
                     # classifier forward
                     reps = classifier(encoder_out["x_encoded"])
 
@@ -126,7 +128,7 @@ class Manager(object):
 
                     # loss components
                     CE_loss = F.cross_entropy(input=reps, target=targets, reduction="mean") # cross entropy loss
-                    CT_loss =  0 # contrastive loss
+                    CT_loss =  constractive_loss(encoder_out, pos_description_out, neg_description_out) # constractive loss
                     loss = CE_loss + CT_loss
                     losses.append(loss.item())
                     loss.backward()

@@ -107,7 +107,7 @@ class data_sampler(object):
             rel = self.id2rel[index]
             current_relations.append(rel)
             self.seen_relations.append(rel)
-            self.seen_descriptions[rel] = self.rel2desc[rel]["token_ids"]
+            self.seen_descriptions[rel] = self.rel2desc[rel]
             cur_training_data[rel] = self.training_dataset[index]
             cur_valid_data[rel] = self.valid_dataset[index]
             cur_test_data[rel] = self.test_dataset[index]

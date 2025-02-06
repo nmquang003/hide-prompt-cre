@@ -67,36 +67,38 @@ class BertRelationEncoder(nn.Module):
         else:
             raise Exception("Wrong encoding.")
 
-    def forward(self, input_ids, prompt_pool=None, x_key=None, prompt_pools=None):
+    def forward(self, input_ids, prompt_pool=None, x_key=None, prompt_pools=None, extract_type="relation"):
         out = dict()
-        e11 = (input_ids == 30522).nonzero()
-        e21 = (input_ids == 30524).nonzero()
+        if extract_type == "relation":
+            e11 = (input_ids == 30522).nonzero()
+            e21 = (input_ids == 30524).nonzero()
 
-        out = self.encoder(input_ids, prompt_pool, x_key, prompt_pools)
-        output = []
-        for i in range(e11.shape[0]):
-            if prompt_pool is not None:
-                # if self.config.prompt_type == "coda_prompt":
-                additional_length = prompt_pool.length
-                # else:
-                # additional_length = prompt_pool.total_prompt_length
-            elif prompt_pools is not None:
-                # if self.config.prompt_type == "coda_prompt":
-                additional_length = prompt_pools[0].length
-                # else:
-                # additional_length = prompt_pools[0].total_prompt_length
-            else:
-                additional_length = 0
+            out = self.encoder(input_ids, prompt_pool, x_key, prompt_pools)
+            output = []
+            for i in range(e11.shape[0]):
+                if prompt_pool is not None:
+                    # if self.config.prompt_type == "coda_prompt":
+                    additional_length = prompt_pool.length
+                    # else:
+                    # additional_length = prompt_pool.total_prompt_length
+                elif prompt_pools is not None:
+                    # if self.config.prompt_type == "coda_prompt":
+                    additional_length = prompt_pools[0].length
+                    # else:
+                    # additional_length = prompt_pools[0].total_prompt_length
+                else:
+                    additional_length = 0
 
-            instance_output = torch.index_select(out["attention_out"], 0, torch.tensor(i).cuda())
-            instance_output = torch.index_select(instance_output, 1, torch.tensor([e11[i][1], e21[i][1]]).cuda() + additional_length)
-            output.append(instance_output)
-        output = torch.cat(output, dim=0)
-        output = output.view(output.shape[0], -1)
-        out["x_encoded"] = output
+                instance_output = torch.index_select(out["attention_out"], 0, torch.tensor(i).cuda())
+                instance_output = torch.index_select(instance_output, 1, torch.tensor([e11[i][1], e21[i][1]]).cuda() + additional_length)
+                output.append(instance_output)
+            output = torch.cat(output, dim=0)
+            output = output.view(output.shape[0], -1)
+            out["x_encoded"] = output
         
-        # Extract CLS token representation
-        cls_token_representation = out["attention_out"][:, 0, :]  # Assuming CLS token is at position 0
-        out["cls_representation"] = cls_token_representation
+        elif extract_type == "cls":
+            out = self.encoder(input_ids, prompt_pool, x_key, prompt_pools)
+            cls_token_representation = out["attention_out"][:, 0, :]
+            out["cls_representation"] = cls_token_representation
 
         return out
