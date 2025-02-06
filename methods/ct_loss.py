@@ -5,13 +5,13 @@ def sim(x, y):
     """
     Tính độ tương đồng giữa hai vectơ x, y
     
-    - x: Tensor (D,), vectơ thứ nhất
-    - y: Tensor (D,), vectơ thứ hai
+    - x: Tensor (N, D), batch của N vectơ đầu vào
+    - y: Tensor (M, D), batch của M vectơ so sánh
     
     Trả về:
-    - sim: Độ tương đồng giữa x, y
+    - sim: Tensor (N, M), ma trận độ tương đồng giữa x và y
     """
-    return F.cosine_similarity(x, y)
+    return F.cosine_similarity(x.unsqueeze(1), y.unsqueeze(0), dim=-1)
 
 def contrastive_loss(reps, targets, descriptions, temperature=5):
     """
@@ -27,19 +27,19 @@ def contrastive_loss(reps, targets, descriptions, temperature=5):
     """
     device = reps.device
     
-    loss = []
+    # Tạo batch descriptions tương ứng với từng mẫu trong reps
+    desc_list = torch.stack([descriptions[int(label)][0] for label in targets]).to(device)  # (N, D)
     
-    for i in range(reps.size(0)):
-        pos = sim(reps[i], descriptions[targets[i]])
-        negs = [sim(reps[i], des) for des in descriptions.values() if des is not descriptions[targets[i]]]
-        
-        loss.append(-torch.log(torch.exp(pos / temperature) / torch.sum(torch.exp(torch.tensor(negs) / temperature))))
-        
-    return torch.mean(torch.tensor(loss))
+    # Tạo batch tất cả descriptions
+    all_descriptions = torch.stack([des[0] for des in descriptions.values()]).to(device)  # (M, D)
     
+    # Tính cosine similarity giữa reps và descriptions
+    similarities = sim(reps, all_descriptions) / temperature  # (N, M)
     
-
+    # Lấy similarity giữa reps và mô tả tương ứng
+    pos_sim = sim(reps, desc_list).diag()  # (N,)
     
+    # Tính loss theo công thức -log(sim(x, des(x)) / sum(sim(x, des)))
+    loss = -torch.log(torch.exp(pos_sim) / torch.sum(torch.exp(similarities), dim=1))
     
-
-
+    return loss.mean()

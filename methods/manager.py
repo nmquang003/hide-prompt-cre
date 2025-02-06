@@ -105,7 +105,7 @@ class Manager(object):
             total_hits = 0 
 
             for step, (labels, tokens, _) in enumerate(td):
-                # try:
+                try:
                     optimizer.zero_grad()
 
                     # batching
@@ -114,14 +114,14 @@ class Manager(object):
                     tokens = torch.stack([x.to(args.device) for x in tokens], dim=0)
 
                     # encoder forward
-                    encoder_out = encoder(tokens)
+                    encoder_out = encoder(tokens)["x_encoded"]
 
                     description_out = {}
                     for rel, des in seen_description.items():
-                        des_tokens = torch.tensor(des['token_ids'])
-                        description_out[self.rel2id[rel]] = encoder(des_tokens, extract_type="cls")
+                        des_tokens = torch.tensor([des['token_ids']]).to(args.device)
+                        description_out[self.rel2id[rel]] = encoder(des_tokens, extract_type="cls")["cls_representation"]
                     # classifier forward
-                    reps = classifier(encoder_out["x_encoded"])
+                    reps = classifier(encoder_out)
 
                     # prediction
                     probs = F.softmax(reps, dim=1)
@@ -141,8 +141,8 @@ class Manager(object):
 
                     # display
                     td.set_postfix(loss=np.array(losses).mean(), acc=total_hits / sampled)
-                # except:
-                #     continue
+                except:
+                    continue
 
         for e_id in range(args.encoder_epochs):
             train_data(data_loader, f"train_encoder_epoch_{e_id + 1}", e_id)
