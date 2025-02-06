@@ -99,6 +99,7 @@ class BertRelationEncoder(nn.Module):
         elif extract_type == "cls":
             out = self.encoder(input_ids, prompt_pool, x_key, prompt_pools)
             cls_token_representation = out["attention_out"][:, 0, :]
+            cls_token_representation = torch.cat([cls_token_representation, cls_token_representation], dim=-1)  # Nhân đôi độ dài
             out["cls_representation"] = cls_token_representation
 
         return out

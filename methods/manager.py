@@ -6,7 +6,7 @@ from .model import *
 from .backbone import *
 from .prompt import *
 from .utils import *
-from .ct_loss import constractive_loss, sim
+from .ct_loss import contrastive_loss
 
 import torch
 import torch.optim as optim
@@ -112,18 +112,14 @@ class Manager(object):
                     sampled += len(labels)
                     targets = labels.type(torch.LongTensor).to(args.device)
                     tokens = torch.stack([x.to(args.device) for x in tokens], dim=0)
-                    
-                    # print("="*20)
-                    # print(targets.shape)
-                    # print(targets)
-                    # print("="*20)
-                    # print(tokens.shape)
 
                     # encoder forward
                     encoder_out = encoder(tokens)
+
                     description_out = {}
-                    for rel, des in seen_description:
-                        description_out[self.rel2id[rel]] = encoder(des['token_ids'])
+                    for rel, des in seen_description.items():
+                        des_tokens = torch.tensor(des['token_ids'])
+                        description_out[self.rel2id[rel]] = encoder(des_tokens, extract_type="cls")
                     # classifier forward
                     reps = classifier(encoder_out["x_encoded"])
 
@@ -134,7 +130,7 @@ class Manager(object):
 
                     # loss components
                     CE_loss = F.cross_entropy(input=reps, target=targets, reduction="mean") # cross entropy loss
-                    CT_loss =  constractive_loss(encoder_out, targets, description_out) # constractive loss
+                    CT_loss =  contrastive_loss(encoder_out, targets, description_out) # constractive loss
                     loss = CE_loss + CT_loss
                     losses.append(loss.item())
                     loss.backward()
