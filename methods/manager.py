@@ -84,7 +84,7 @@ class Manager(object):
                 swag_classifier.sample(0.0)
                 bn_update(data_loader, swag_classifier)
 
-    def train_encoder(self, args, encoder, training_data, seen_description, task_id):
+    def train_encoder(self, args, encoder, training_data, seen_description, task_id, beta=0.1):
         encoder.train()
         classifier = Classifier(args=args).to(args.device)
         classifier.train()
@@ -114,14 +114,14 @@ class Manager(object):
                     tokens = torch.stack([x.to(args.device) for x in tokens], dim=0)
 
                     # encoder forward
-                    encoder_out = encoder(tokens)["x_encoded"]
+                    encoder_out = encoder(tokens)
 
                     description_out = {}
                     for rel, des in seen_description.items():
                         des_tokens = torch.tensor([des['token_ids']]).to(args.device)
                         description_out[self.rel2id[rel]] = encoder(des_tokens, extract_type="cls")["cls_representation"]
                     # classifier forward
-                    reps = classifier(encoder_out)
+                    reps = classifier(encoder_out["x_encoded"])
 
                     # prediction
                     probs = F.softmax(reps, dim=1)
@@ -130,8 +130,8 @@ class Manager(object):
 
                     # loss components
                     CE_loss = F.cross_entropy(input=reps, target=targets, reduction="mean") # cross entropy loss
-                    CT_loss =  contrastive_loss(encoder_out, targets, description_out) # constractive loss
-                    loss = CE_loss + CT_loss
+                    CT_loss =  contrastive_loss(encoder_out["x_encoded"], targets, description_out) # constractive loss
+                    loss = CE_loss + CT_loss*beta
                     losses.append(loss.item())
                     loss.backward()
 
@@ -147,7 +147,7 @@ class Manager(object):
         for e_id in range(args.encoder_epochs):
             train_data(data_loader, f"train_encoder_epoch_{e_id + 1}", e_id)
 
-    def train_prompt_pool(self, args, encoder, prompt_pool, training_data, task_id):
+    def train_prompt_pool(self, args, encoder, prompt_pool, training_data, seen_description, task_id, beta=0.1):
         encoder.eval()
         classifier = Classifier(args=args).to(args.device)
         classifier.train()
@@ -196,7 +196,11 @@ class Manager(object):
 
                 # encoder forward
                 encoder_out = encoder(tokens, prompt_pool, x_key)
-
+                
+                description_out = {}
+                for rel, des in seen_description.items():
+                    des_tokens = torch.tensor([des['token_ids']]).to(args.device)
+                    description_out[self.rel2id[rel]] = encoder(des_tokens, extract_type="cls")["cls_representation"]
                 # classifier forward
                 reps = classifier(encoder_out["x_encoded"])
 
@@ -208,7 +212,8 @@ class Manager(object):
                 # loss components
                 prompt_reduce_sim_loss = -args.pull_constraint_coeff * encoder_out["reduce_sim"]
                 CE_loss = F.cross_entropy(input=reps, target=targets, reduction="mean")
-                loss = CE_loss + prompt_reduce_sim_loss
+                CT_loss =  contrastive_loss(encoder_out["x_encoded"], targets, description_out) # constractive loss
+                loss = CE_loss + prompt_reduce_sim_loss + CT_loss*beta
                 losses.append(loss.item())
                 loss.backward()
 
@@ -389,12 +394,13 @@ class Manager(object):
 
             # train encoder
             if steps == 0:
-                self.train_encoder(args, encoder, cur_training_data, seen_descriptions, task_id=steps)
+                self.train_encoder(args, encoder, cur_training_data, seen_descriptions, task_id=steps, beta=args.contrastive_loss_coeff)
 
             # new prompt pool
             self.prompt_pools.append(Prompt(args).to(args.device))
             self.train_prompt_pool(args, encoder, self.prompt_pools[-1], 
-                                   cur_training_data, task_id=steps)
+                                   cur_training_data, seen_descriptions,
+                                   task_id=steps, beta=args.contrastive_loss_coeff)
 
             # memory
             for i, relation in enumerate(current_relations):

@@ -40,6 +40,7 @@ class Param:
         parser.add_argument("--gmm_num_components", default=1, type=int)
         # loss balancing
         parser.add_argument("--pull_constraint_coeff", default=0.1, type=float)
+        parser.add_argument("--contrastive_loss_coeff", default=0.1, type=float)
 
         # epochs
         parser.add_argument("--classifier_epochs", default=100, type=int)
