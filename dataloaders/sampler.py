@@ -63,6 +63,7 @@ class data_sampler(object):
         if args.dataname in ["FewRel"]:
             args.data_file = os.path.join(args.data_path, "data_with{}_marker.json".format(use_marker))
             args.relation_file = os.path.join(args.data_path, "id2rel.json")
+            args.description_file = os.path.join(args.data_path, "FewRel/relation_description_new.txt")
             args.num_of_relation = 80
             args.num_of_train = 420
             args.num_of_val = 140
