@@ -513,10 +513,14 @@ class Manager(object):
                     "results": list(acc_sum),
                 })
                 
-                if not os.path.exists(f"./results/{args.seed}_coda_prompt"):
-                    os.makedirs(f"./results/{args.seed}_coda_prompt")  
-                                
-                with open(f"./results/{args.seed}_coda_prompt/task_{steps}.pickle", "wb") as file:
+                # Tạo thư mục lưu kết quả dựa trên seed và các tham số quan trọng
+                result_dir = f"./results/{args.dataname}_seed{args.seed}_encLR{args.encoder_lr}_clsLR{args.classifier_lr}_promptLen{args.prompt_length}_pull{args.pull_constraint_coeff}_contrast{args.contrastive_loss_coeff}"
+                if not os.path.exists(result_dir):
+                    os.makedirs(result_dir)
+
+                # Lưu kết quả với tên file chứa thông tin về bước hiện tại
+                result_file = f"{result_dir}/task_{steps}.pickle"
+                with open(result_file, "wb") as file:
                     pickle.dump(results, file)
 
 
