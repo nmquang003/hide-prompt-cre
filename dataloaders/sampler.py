@@ -137,7 +137,7 @@ class data_sampler(object):
                 count1 = 0
                 for i, sample in enumerate(rel_samples):
                     tokenized_sample = {}
-                    tokenized_sample["relation"] = self.rel2id[ "relation"]
+                    tokenized_sample["relation"] = self.rel2id[sample["relation"]]
                     
                     text = extract_tokens_between_markers(sample["tokens"], "[E11]", "[E12]") \
                         + "[MASK]" \
