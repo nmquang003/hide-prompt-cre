@@ -69,7 +69,7 @@ class BertRelationEncoder(nn.Module):
 
     def forward(self, input_ids, prompt_pool=None, x_key=None, prompt_pools=None, extract_type="relation"):
         out = dict()
-        if extract_type == "relation":reduce_sim
+        if extract_type == "relation":
             e11 = (input_ids == 30522).nonzero()
             e21 = (input_ids == 30524).nonzero()
 
