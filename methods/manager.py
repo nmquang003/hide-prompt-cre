@@ -20,6 +20,7 @@ from sklearn.mixture import GaussianMixture
 
 from tqdm import tqdm, trange
 import pickle
+import wandb
 
 class Manager(object):
     def __init__(self, args):
@@ -66,6 +67,12 @@ class Manager(object):
                     loss = F.cross_entropy(input=reps, target=targets, reduction="mean")
                     losses.append(loss.item())
                     loss.backward()
+                    
+                    # log to wandb
+                    wandb.log({
+                        "classifier_loss": loss.item(),
+                        "classifier_acc": hits.mean().item()
+                    })
 
                     # params update
                     torch.nn.utils.clip_grad_norm_(modules_parameters, args.max_grad_norm)
@@ -134,6 +141,13 @@ class Manager(object):
                     loss = CE_loss + CT_loss*beta
                     losses.append(loss.item())
                     loss.backward()
+                    
+                    # log to wandb
+                    wandb.log({
+                        "encoder_loss": loss.item(),
+                        "encoder_ce_loss": CE_loss.item(), 
+                        "encoder_ct_loss": CT_loss.item()
+                    })
 
                     # params update
                     torch.nn.utils.clip_grad_norm_(modules_parameters, args.max_grad_norm)
@@ -216,6 +230,14 @@ class Manager(object):
                 loss = CE_loss + prompt_reduce_sim_loss + CT_loss*beta
                 losses.append(loss.item())
                 loss.backward()
+                
+                # log to wandb
+                wandb.log({
+                    "prompt_pool_loss": loss.item(),
+                    "prompt_pool_ce_loss": CE_loss.item(), 
+                    "prompt_pool_ct_loss": CT_loss.item(),
+                    "prompt_pool_reduce_sim_loss": prompt_reduce_sim_loss.item()
+                })
 
                 # params update
                 torch.nn.utils.clip_grad_norm_(modules_parameters, args.max_grad_norm)

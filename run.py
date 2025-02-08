@@ -3,6 +3,9 @@ import torch
 from config import Param
 from methods.utils import setup_seed
 from methods.manager import Manager
+import wandb
+from dotenv import load_dotenv
+
 
 
 def run(args):
@@ -21,6 +24,19 @@ if __name__ == "__main__":
     # Load configuration
     param = Param()
     args = param.args
+    
+    # wandb
+    load_dotenv()
+    wandb.login()
+
+    # start a new wandb run to track this script
+    wandb.init(
+        # set the wandb project where this run will be logged
+        project="wave",
+
+        # track hyperparameters and run metadata
+        config=args.__dict__,
+    )
 
     # Device
     torch.cuda.set_device(args.gpu)
@@ -42,3 +58,5 @@ if __name__ == "__main__":
 
     # Run
     run(args)
+    
+    wandb.finish()
