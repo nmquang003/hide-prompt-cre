@@ -16,7 +16,7 @@ def sim(x, y):
     
     return torch.mm(x, y.t())
 
-def contrastive_loss(reps, targets, descriptions, temperature=5):
+def contrastive_loss(reps, targets, descriptions, num_negs = 4, temperature=5):
     """
     Tính loss kiểu -log(sim(x, des(x)) / sim(x, des))
     
@@ -42,7 +42,13 @@ def contrastive_loss(reps, targets, descriptions, temperature=5):
     # Lấy similarity giữa reps và mô tả tương ứng
     pos_sim = sim(reps, desc_list).diag()  # (N,)
     
-    # Tính loss theo công thức -log(sim(x, des(x)) / sum(sim(x, des)))
-    loss = -torch.log(torch.exp(pos_sim) / torch.sum(torch.exp(similarities), dim=1))
+    # Lấy num_negs mẫu ngẫu nhiên cho mỗi mẫu trong batch
+    negs = torch.randint(0, len(descriptions), (len(targets), num_negs)).to(device)  # (N, num_negs)
+    
+    # Lấy similarity giữa reps và mô tả ngẫu nhiên
+    neg_sims = similarities[torch.arange(len(targets)).unsqueeze(1), negs]  # (N, num_negs)
+    
+    # Tính loss theo công thức -log(sim(x, des(x)) / (sim(x, des(x) + sim(x, neg_des)))
+    loss = -torch.log(torch.sigmoid(pos_sim.unsqueeze(1) - neg_sims).mean(dim=1)).mean()
     
     return loss.mean()
