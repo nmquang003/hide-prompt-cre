@@ -112,7 +112,6 @@ class Manager(object):
             total_hits = 0 
 
             for step, (labels, tokens, _) in enumerate(td):
-                try:
                     optimizer.zero_grad()
 
                     # batching
@@ -155,8 +154,7 @@ class Manager(object):
 
                     # display
                     td.set_postfix(loss=np.array(losses).mean(), acc=total_hits / sampled)
-                except:
-                    continue
+
 
         for e_id in range(args.encoder_epochs):
             train_data(data_loader, f"train_encoder_epoch_{e_id + 1}", e_id)
