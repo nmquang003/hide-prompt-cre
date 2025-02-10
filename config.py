@@ -42,6 +42,7 @@ class Param:
         # loss balancing
         parser.add_argument("--pull_constraint_coeff", default=0.1, type=float)
         parser.add_argument("--contrastive_loss_coeff", default=0.1, type=float)
+        parser.add_argument("--num_negs", default=4, type=int)
 
         # epochs
         parser.add_argument("--classifier_epochs", default=100, type=int)

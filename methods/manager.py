@@ -136,7 +136,7 @@ class Manager(object):
 
                     # loss components
                     CE_loss = F.cross_entropy(input=reps, target=targets, reduction="mean") # cross entropy loss
-                    CT_loss =  contrastive_loss(encoder_out["x_encoded"], targets, description_out) # constractive loss
+                    CT_loss =  contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs) # constractive loss
                     loss = CE_loss + CT_loss*beta
                     losses.append(loss.item())
                     loss.backward()
@@ -224,7 +224,7 @@ class Manager(object):
                 # loss components
                 prompt_reduce_sim_loss = -args.pull_constraint_coeff * encoder_out["reduce_sim"]
                 CE_loss = F.cross_entropy(input=reps, target=targets, reduction="mean")
-                CT_loss =  contrastive_loss(encoder_out["x_encoded"], targets, description_out) # constractive loss
+                CT_loss =  contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs) # constractive loss
                 loss = CE_loss + prompt_reduce_sim_loss + CT_loss*beta
                 losses.append(loss.item())
                 loss.backward()
