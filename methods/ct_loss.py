@@ -42,8 +42,8 @@ def contrastive_loss(reps, targets, descriptions, num_negs = 4, temperature=5):
     # Lấy similarity giữa reps và mô tả tương ứng
     pos_sim = sim(reps, desc_list).diag()  # (N,)
     
-    # Lấy num_negs mẫu ngẫu nhiên cho mỗi mẫu trong batch
-    negs = torch.randint(0, len(descriptions), (len(targets), num_negs)).to(device)  # (N, num_negs)
+    # Lấy top-k mô tả gần nhất với reps
+    _, negs = similarities.topk(num_negs, dim=1)  # (N, num_negs)
     
     # Lấy similarity giữa reps và mô tả ngẫu nhiên
     neg_sims = similarities[torch.arange(len(targets)).unsqueeze(1), negs]  # (N, num_negs)
