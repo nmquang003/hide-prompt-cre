@@ -6,7 +6,7 @@ from methods.manager import Manager
 import wandb
 from dotenv import load_dotenv
 import os
-os.environ['WANDB_MODE'] = 'disabled' # disable wandb for this script
+# os.environ['WANDB_MODE'] = 'disabled' # disable wandb for this script
 
 
 
