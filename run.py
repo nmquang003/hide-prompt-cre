@@ -32,9 +32,13 @@ if __name__ == "__main__":
     wandb.login()
 
     # start a new wandb run to track this script
+    if args.run_name is None:
+        args.run_name = f"{args.dataname}_{args.contrastive_loss_coeff}"
+        
     wandb.init(
         # set the wandb project where this run will be logged
         project="wave",
+        name = args.run_name,
 
         # track hyperparameters and run metadata
         config=args.__dict__,

@@ -17,6 +17,7 @@ class Param:
         parser.add_argument("--dataname", default="FewRel", type=str, help="Use TACRED or FewRel datasets.")
         parser.add_argument("--task_name", default="FewRel", type=str)
         parser.add_argument("--device", default="cuda", type=str)
+        parser.add_argument("--run_name", default=None, type=str)
 
         # training parameters
         parser.add_argument("--batch_size", default=16, type=int)
