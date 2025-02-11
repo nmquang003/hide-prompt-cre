@@ -12,6 +12,9 @@ class Param:
         self.args = all_args
 
     def all_param(self, parser):
+        # eoe tii
+        parser.add_argument("--eoe_tii", default="yes", type=str)
+        
         # common parameters
         parser.add_argument("--gpu", default=0, type=int)
         parser.add_argument("--dataname", default="FewRel", type=str, help="Use TACRED or FewRel datasets.")

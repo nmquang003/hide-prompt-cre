@@ -529,8 +529,11 @@ class Manager(object):
                 tokens = torch.stack([x.to(args.device) for x in tokens], dim=0)
 
                 # NgoDinhLuyen EoE
-                pool_ids, pred  = self.choose_indices_eoe_tii(args, encoder, tokens, labels, batch_size)
-                # pool_ids, pred = self.choose_indices_wave(args, encoder, tokens, classifier)
+                if args.eoe_tii == "yes":
+                    print("Choose EoE")
+                    pool_ids, pred  = self.choose_indices_eoe_tii(args, encoder, tokens, labels, batch_size)
+                else:
+                    pool_ids, pred = self.choose_indices_wave(args, encoder, tokens, classifier)
                 # NgoDinhLuyen EoE
 
                 # encoder forward
