@@ -530,7 +530,6 @@ class Manager(object):
 
                 # NgoDinhLuyen EoE
                 if args.eoe_tii == "yes":
-                    print("Choose EoE")
                     pool_ids, pred  = self.choose_indices_eoe_tii(args, encoder, tokens, labels, batch_size)
                 else:
                     pool_ids, pred = self.choose_indices_wave(args, encoder, tokens, classifier)
