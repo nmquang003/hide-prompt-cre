@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch
 import numpy as np
 
-from transformers import BertConfig
+from transformers import BertConfig, BertModel
 from transformers.models.bert.modeling_bert import BertPreTrainedModel, BertEmbeddings, BertEncoder, BertPooler
 
 
