@@ -139,7 +139,8 @@ class Manager(object):
         topk_indices = topk_indices[:, 1:].tolist()  # Chuyển thành list để dễ dùng
         
         for i in range(len(topk_indices)):
-            negative_dict[rel2id[i]] = topk_indices[i]
+            new_topk_indices = [rel2id[j] for j in topk_indices[i]]
+            negative_dict[rel2id[i]] = new_topk_indices
         return negative_dict
         
     def train_encoder(self, args, encoder, training_data, seen_description, task_id, beta=0.1):
@@ -161,7 +162,7 @@ class Manager(object):
 
             sampled = 0
             total_hits = 0 
-
+            negative_dict = self.find_negative_labels(args, encoder, seen_description)
             for step, (labels, tokens, _) in enumerate(td):
                     optimizer.zero_grad()
 
@@ -172,39 +173,42 @@ class Manager(object):
 
                     # encoder forward
                     encoder_out = encoder(tokens)
-
-                    # Old
-                    # description_out = {}
-                    # for rel, descriptions in seen_description.items():
-                    #     temp = []
-                    #     for description in descriptions:
-                    #         des_tokens = torch.tensor([description['token_ids']]).to(args.device)
-                    #         temp.append(encoder(des_tokens, extract_type="cls")["cls_representation"])
-                    #     description_out[self.rel2id[rel]] = temp
-                    # Old
                     
-                    # New
-                    if step % 10:
-                        negative_dict = self.find_negative_labels(args, encoder, seen_description)
-                    
-                    all_description_label_need_cal = []
-                    
-                    for label in labels:
-                        if label not in all_description_label_need_cal:
-                            all_description_label_need_cal.append(label)
-                        for lab in negative_dict[label]:
-                            if lab not in all_description_label_need_cal:
-                                all_description_label_need_cal.append(lab)
-                    
-                    description_out = {}
-                    for rel, descriptions in seen_description.items():
-                        if self.rel2id[rel] in all_description_label_need_cal:
-                            temp = []
-                            for description in descriptions:
-                                des_tokens = torch.tensor([description['token_ids']]).to(args.device)
-                                temp.append(encoder(des_tokens, extract_type="cls")["cls_representation"])
-                            description_out[self.rel2id[rel]] = temp
-                    # New    
+                    if args.use_ct_in_encoder == "yes":             
+                        # New
+                        if args.type_ctloss == "new":
+                            if step % 10==0:
+                                negative_dict = self.find_negative_labels(args, encoder, seen_description)
+                            
+                            all_description_label_need_cal = []
+                            
+                            for label in labels:
+                                label = int(label)
+                                if label not in all_description_label_need_cal:
+                                    all_description_label_need_cal.append(label)
+                                for lab in negative_dict[label]:
+                                    if lab not in all_description_label_need_cal:
+                                        all_description_label_need_cal.append(lab)
+                            
+                            description_out = {}
+                            for rel, descriptions in seen_description.items():
+                                if self.rel2id[rel] in all_description_label_need_cal:
+                                    temp = []
+                                    for description in descriptions:
+                                        des_tokens = torch.tensor([description['token_ids']]).to(args.device)
+                                        temp.append(encoder(des_tokens, extract_type="cls")["cls_representation"])
+                                    description_out[self.rel2id[rel]] = temp
+                        # New   
+                        else: 
+                        # Old
+                            description_out = {}
+                            for rel, descriptions in seen_description.items():
+                                temp = []
+                                for description in descriptions:
+                                    des_tokens = torch.tensor([description['token_ids']]).to(args.device)
+                                    temp.append(encoder(des_tokens, extract_type="cls")["cls_representation"])
+                                description_out[self.rel2id[rel]] = temp
+                        # Old
                     
                     # classifier forward
                     reps = classifier(encoder_out["x_encoded"])
@@ -217,15 +221,19 @@ class Manager(object):
                     # loss components
                     CE_loss = F.cross_entropy(input=reps, target=targets, reduction="mean") # cross entropy loss
                     
-                    # New
-                    CT_loss =  new_contrastive_loss(encoder_out["x_encoded"], targets, description_out, negative_dict, args.num_descriptions, self.rel2id) # constractive loss
-                    # New
-                    
-                    # Old
-                    # CT_loss =  contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs) # constractive loss
-                    # Old
-                    
-                    loss = CE_loss + CT_loss*beta
+                    if args.use_ct_in_encoder == "yes":
+                        if args.type_ctloss == "new":
+                        # New
+                            CT_loss =  new_contrastive_loss(encoder_out["x_encoded"], targets, description_out, negative_dict, args.num_descriptions) # constractive loss
+                        # New
+                        else:                    
+                        # Old
+                            CT_loss =  contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs) # constractive loss
+                        # Old
+                    if args.use_ct_in_encoder == "yes":
+                        loss = CE_loss + CT_loss*beta
+                    else:
+                        loss = CE_loss
                     losses.append(loss.item())
                     loss.backward()
                     
@@ -297,13 +305,41 @@ class Manager(object):
                 # encoder forward
                 encoder_out = encoder(tokens, prompt_pool, x_key)
                 
-                description_out = {}
-                for rel, descriptions in seen_description.items():
-                    temp = []
-                    for description in descriptions:
-                        des_tokens = torch.tensor([description['token_ids']]).to(args.device)
-                        temp.append(encoder(des_tokens, extract_type="cls")["cls_representation"])
-                    description_out[self.rel2id[rel]] = temp
+                # New 
+                if args.type_ctloss == "new":
+                    if step % 10==0:
+                        negative_dict = self.find_negative_labels(args, encoder, seen_description)
+                    
+                    all_description_label_need_cal = []
+                    
+                    for label in labels:
+                        label = int(label)
+                        if label not in all_description_label_need_cal:
+                            all_description_label_need_cal.append(label)
+                        for lab in negative_dict[label]:
+                            if lab not in all_description_label_need_cal:
+                                all_description_label_need_cal.append(lab)
+                    
+                    description_out = {}
+                    for rel, descriptions in seen_description.items():
+                        if self.rel2id[rel] in all_description_label_need_cal:
+                            temp = []
+                            for description in descriptions:
+                                des_tokens = torch.tensor([description['token_ids']]).to(args.device)
+                                temp.append(encoder(des_tokens, extract_type="cls")["cls_representation"])
+                            description_out[self.rel2id[rel]] = temp                
+                # New   
+                else:
+                # Old
+                    description_out = {}
+                    for rel, descriptions in seen_description.items():
+                        temp = []
+                        for description in descriptions:
+                            des_tokens = torch.tensor([description['token_ids']]).to(args.device)
+                            temp.append(encoder(des_tokens, extract_type="cls")["cls_representation"])
+                        description_out[self.rel2id[rel]] = temp
+                # Old
+                
                 # classifier forward
                 reps = classifier(encoder_out["x_encoded"])
 
@@ -315,7 +351,16 @@ class Manager(object):
                 # loss components
                 prompt_reduce_sim_loss = -args.pull_constraint_coeff * encoder_out["reduce_sim"]
                 CE_loss = F.cross_entropy(input=reps, target=targets, reduction="mean")
-                CT_loss =  contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs) # constractive loss
+                
+                if args.type_ctloss == "new":
+                # New
+                    CT_loss =  new_contrastive_loss(encoder_out["x_encoded"], targets, description_out, negative_dict, args.num_descriptions) # constractive loss
+                # New
+                else:
+                # Old
+                    CT_loss =  contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs) # constractive loss
+                # Old
+                
                 loss = CE_loss + prompt_reduce_sim_loss + CT_loss*beta
                 losses.append(loss.item())
                 loss.backward()
