@@ -14,6 +14,7 @@ class Param:
     def all_param(self, parser):
         # eoe tii
         parser.add_argument("--eoe_tii", default="yes", type=str)
+        parser.add_argument("--num_descriptions", default=1, type=int)
         
         # common parameters
         parser.add_argument("--gpu", default=0, type=int)

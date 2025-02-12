@@ -33,6 +33,7 @@ if __name__ == "__main__":
     wandb_api_key = "0806b2d5c00870a95f366d95c825d7680649abb7"  # Thay YOUR_WANDB_API_KEY bằng API key thực tế của bạn
 
     os.environ["WANDB_API_KEY"] = wandb_api_key
+    
     wandb.login()
 
     # start a new wandb run to track this script

@@ -226,9 +226,12 @@ class Manager(object):
                 encoder_out = encoder(tokens, prompt_pool, x_key)
                 
                 description_out = {}
-                for rel, des in seen_description.items():
-                    des_tokens = torch.tensor([des['token_ids']]).to(args.device)
-                    description_out[self.rel2id[rel]] = encoder(des_tokens, extract_type="cls")["cls_representation"]
+                for rel, descriptions in seen_description.items():
+                    temp = []
+                    for description in descriptions:
+                        des_tokens = torch.tensor([description['token_ids']]).to(args.device)
+                        temp.append(encoder(des_tokens, extract_type="cls")["cls_representation"])
+                    description_out[self.rel2id[rel]] = temp
                 # classifier forward
                 reps = classifier(encoder_out["x_encoded"])
 

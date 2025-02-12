@@ -68,7 +68,8 @@ class data_sampler(object):
         if args.dataname in ["FewRel"]:
             args.data_file = os.path.join(args.data_path, "data_with{}_marker.json".format(use_marker))
             args.relation_file = os.path.join(args.data_path, "id2rel.json")
-            args.description_file = os.path.join(args.data_path, "FewRel/relation_description_new.txt")
+            # args.description_file = os.path.join(args.data_path, "FewRel/relation_description_new.txt")
+            args.description_file = os.path.join(args.data_path, "FewRel/relation_description_detail_10.txt")
             args.num_of_relation = 80
             args.num_of_train = 420
             args.num_of_val = 140
@@ -76,7 +77,8 @@ class data_sampler(object):
         elif args.dataname in ["TACRED"]:
             args.data_file = os.path.join(args.data_path, "data_with{}_marker_tacred.json".format(use_marker))
             args.relation_file = os.path.join(args.data_path, "id2rel_tacred.json")
-            args.description_file = os.path.join(args.data_path, "TACRED/relation_description.txt")
+            # args.description_file = os.path.join(args.data_path, "TACRED/relation_description.txt")
+            args.description_file = os.path.join(args.data_path, "TACRED/relation_description_detail_10.txt")
             args.num_of_relation = 40
             args.num_of_train = 420
             args.num_of_val = 140
@@ -183,10 +185,13 @@ class data_sampler(object):
         des = pd.read_csv(file, sep="\t", header=None)
         rel2desc = {}
         for i in range(len(des)):
-            token_ids = self.tokenizer.encode(des[2][i], padding="max_length", truncation=True, max_length=self.args.max_length)
-            rel2desc[des[0][i]] = {
-                "description": des[2][i],
-                "token_ids": token_ids
-            }
+            temp = []
+            for j in range(2, min(2 + self.args.num_descriptions, 12)):
+                token_ids = self.tokenizer.encode(des[j][i], padding="max_length", truncation=True, max_length=self.args.max_length)
+                temp.append({
+                    "description": des[j][i],
+                    "token_ids": token_ids
+                })
+            rel2desc[des[0][i]] =  temp
             
         return rel2desc
