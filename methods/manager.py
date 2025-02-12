@@ -234,6 +234,7 @@ class Manager(object):
                         loss = CE_loss + CT_loss*beta
                     else:
                         loss = CE_loss
+                        CT_loss = torch.tensor(0.0)
                     losses.append(loss.item())
                     loss.backward()
                     
