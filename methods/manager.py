@@ -107,6 +107,25 @@ class Manager(object):
                 swag_classifier.sample(0.0)
                 bn_update(data_loader, swag_classifier)
 
+    # NgoDinhLuyen Add Function calculate negative period
+    def find_negative_labels(self, args, encoder, seen_description):
+        negative_dict = dict()
+        description_out = {}
+        for rel, descriptions in seen_description.items():
+            temp = torch.stack([
+                encoder(torch.tensor(description['token_ids']).to(args.device), extract_type="cls")["cls_representation"]
+                for description in descriptions
+            ], dim=0)
+
+            # Tính trung bình theo chiều 0 (số lượng descriptions)
+            temp = temp.mean(dim=0)
+            print(temp.shape)
+            description_out[self.rel2id[rel]] = temp
+        
+        description_out
+        
+            
+
     def train_encoder(self, args, encoder, training_data, seen_description, task_id, beta=0.1):
         encoder.train()
         classifier = Classifier(args=args).to(args.device)
@@ -126,6 +145,7 @@ class Manager(object):
 
             sampled = 0
             total_hits = 0 
+            self.find_negative_labels(args, encoder, seen_description)
 
             for step, (labels, tokens, _) in enumerate(td):
                     optimizer.zero_grad()
@@ -139,9 +159,12 @@ class Manager(object):
                     encoder_out = encoder(tokens)
 
                     description_out = {}
-                    for rel, des in seen_description.items():
-                        des_tokens = torch.tensor([des['token_ids']]).to(args.device)
-                        description_out[self.rel2id[rel]] = encoder(des_tokens, extract_type="cls")["cls_representation"]
+                    for rel, descriptions in seen_description.items():
+                        temp = []
+                        for description in descriptions:
+                            des_tokens = torch.tensor([description['token_ids']]).to(args.device)
+                            temp.append(encoder(des_tokens, extract_type="cls")["cls_representation"])
+                        description_out[self.rel2id[rel]] = temp
                     # classifier forward
                     reps = classifier(encoder_out["x_encoded"])
 

@@ -36,7 +36,7 @@ class data_sampler(object):
         self.id2rel, self.rel2id = self._read_relations(args.relation_file)
         
         # read relation description
-        self.rel2desc = self._read_description(args.description_file)
+        self.rel2desc = self._read_description(args.description_file, args.description_file_name)
 
         # random sampling
         self.seed = seed
@@ -68,7 +68,7 @@ class data_sampler(object):
         if args.dataname in ["FewRel"]:
             args.data_file = os.path.join(args.data_path, "data_with{}_marker.json".format(use_marker))
             args.relation_file = os.path.join(args.data_path, "id2rel.json")
-            # args.description_file = os.path.join(args.data_path, "FewRel/relation_description_new.txt")
+            args.description_file_name = os.path.join(args.data_path, "FewRel/relation_description_new.txt")
             args.description_file = os.path.join(args.data_path, "FewRel/relation_description_detail_10.txt")
             args.num_of_relation = 80
             args.num_of_train = 420
@@ -77,7 +77,7 @@ class data_sampler(object):
         elif args.dataname in ["TACRED"]:
             args.data_file = os.path.join(args.data_path, "data_with{}_marker_tacred.json".format(use_marker))
             args.relation_file = os.path.join(args.data_path, "id2rel_tacred.json")
-            # args.description_file = os.path.join(args.data_path, "TACRED/relation_description.txt")
+            args.description_file_name = os.path.join(args.data_path, "TACRED/relation_description.txt")
             args.description_file = os.path.join(args.data_path, "TACRED/relation_description_detail_10.txt")
             args.num_of_relation = 40
             args.num_of_train = 420
@@ -181,8 +181,9 @@ class data_sampler(object):
             rel2id[x] = i
         return id2rel, rel2id
     
-    def _read_description(self, file):
-        des = pd.read_csv(file, sep="\t", header=None)
+    def _read_description(self, file, file_name):
+        des = pd.read_csv(file, sep="\t", header=None, encoding="ISO-8859-1")
+        des_name = pd.read_csv(file_name, sep="\t", header=None, encoding="ISO-8859-1")
         rel2desc = {}
         for i in range(len(des)):
             temp = []
@@ -192,6 +193,6 @@ class data_sampler(object):
                     "description": des[j][i],
                     "token_ids": token_ids
                 })
-            rel2desc[des[0][i]] =  temp
-            
+            rel2desc[des_name[0][i]] =  temp
+        
         return rel2desc
