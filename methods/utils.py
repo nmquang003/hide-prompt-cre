@@ -10,6 +10,21 @@ from datetime import datetime
 import torch
 import torch.nn.functional as F
 
+def sim(x, y):
+    """
+    Tính độ tương đồng giữa hai vectơ x, y
+    
+    - x: Tensor (N, D), batch của N vectơ đầu vào
+    - y: Tensor (M, D), batch của M vectơ so sánh
+    
+    Trả về:
+    - sim: Tensor (N, M), ma trận độ tương đồng giữa x và y
+    """
+    x = F.normalize(x, p=2, dim=1)
+    y = F.normalize(y, p=2, dim=1)
+    
+    return torch.mm(x, y.t())
+
 # NgoDinhLuyen EoE
 def mahalanobis(querys, mean, cov_inv, norm=2):
     """
