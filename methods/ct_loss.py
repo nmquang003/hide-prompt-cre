@@ -68,48 +68,39 @@ def new_contrastive_loss(reps, targets, descriptions, negative_dict, num_descrip
     - loss: Giá trị tổn thất trung bình
     """
     device = reps.device
-    
-    loss = torch.tensor(0.0, device=device)
-    
+        
     # Tạo batch descriptions tương ứng với từng mẫu trong reps
-    for i in range(num_description_per_label):
-        desc_list = torch.stack([descriptions[int(label)][i][0] for label in targets]).to(device)  # (N, D)
-        
-        # Tạo batch tất cả descriptions
-        idx2idmatrix = {}
-        count = 0
-        all_descriptions = []
-        for id_rel, embeds in descriptions.items():
-            temp = []
-            for embed in embeds:
-                all_descriptions.append(embed[0])
-                temp.append(count)
-                count += 1
-            idx2idmatrix[id_rel] = temp
-        all_descriptions = torch.stack(all_descriptions, dim=0).to(device)
-        
-        # Tính cosine similarity giữa reps và descriptions
-        similarities = sim(reps, all_descriptions) / temperature  # (N, M)
-        
-        # Lấy similarity giữa reps và mô tả tương ứng
-        pos_sim = sim(reps, desc_list).diag()  # (N,)
-        
-        expanded_negs = []
-        for label in targets:
-            neg_indices = []
-            for neg_label in negative_dict[int(label)]:  # Duyệt qua negative labels
-                neg_indices.extend(idx2idmatrix[neg_label])  # Lấy tất cả index của negative label
-            expanded_negs.append(neg_indices)
-
-        # Chuyển thành tensor
-        negs = torch.tensor(expanded_negs, device=device)
-        
-        # Lấy similarity giữa reps và mô tả ngẫu nhiên
-        neg_sims = similarities[torch.arange(len(targets)).unsqueeze(1), negs] # (N, num_negs)
-        
-        # Tính loss theo công thức -log(sim(x, des(x)) / (sim(x, des(x) + sim(x, neg_des)))
-        loss += -torch.log(torch.sigmoid(pos_sim.unsqueeze(1) - neg_sims).mean(dim=1)).mean()
+    desc_list = torch.stack([descriptions[int(label)][0] for label in targets]).to(device)  # (N, D)
     
-    loss = loss/num_description_per_label
+    # Tạo batch tất cả descriptions
+    idx2idmatrix = {}
+    all_descriptions = []
+    for idx, (id_rel, embed) in enumerate(descriptions.items()):
+        all_descriptions.append(embed[0])
+        idx2idmatrix[id_rel] = idx
+    all_descriptions = torch.stack(all_descriptions, dim=0).to(device)
+    
+    # Tính cosine similarity giữa reps và descriptions
+    similarities = sim(reps, all_descriptions) / temperature  # (N, M)
+    
+    # Lấy similarity giữa reps và mô tả tương ứng
+    pos_sim = sim(reps, desc_list).diag()  # (N,)
+    
+    expanded_negs = []
+    for label in targets:
+        neg_indices = []
+        for neg_label in negative_dict[int(label)]:  # Duyệt qua negative labels
+            neg_indices.append(idx2idmatrix[neg_label])  # Lấy tất cả index của negative label
+        expanded_negs.append(neg_indices)
+
+    # Chuyển thành tensor
+    negs = torch.tensor(expanded_negs, device=device)
+    
+    # Lấy similarity giữa reps và mô tả ngẫu nhiên
+    neg_sims = similarities[torch.arange(len(targets)).unsqueeze(1), negs] # (N, num_negs)
+    
+    # Tính loss theo công thức -log(sim(x, des(x)) / (sim(x, des(x) + sim(x, neg_des)))
+    loss = -torch.log(torch.sigmoid(pos_sim.unsqueeze(1) - neg_sims).mean(dim=1)).mean()
+    
     
     return loss.mean()

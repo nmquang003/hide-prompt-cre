@@ -199,6 +199,9 @@ class Manager(object):
                                 for description in descriptions:
                                     des_tokens = torch.tensor([description['token_ids']]).to(args.device)
                                     temp.append(encoder(des_tokens, extract_type="cls")["cls_representation"])
+                                temp = torch.stack(temp, dim=0)
+                                temp = torch.mean(temp, dim=0)
+                                temp = temp.squeeze(0)
                                 description_out[self.rel2id[rel]] = temp
                     # New   
                     else: 
