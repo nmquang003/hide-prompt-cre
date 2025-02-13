@@ -205,7 +205,6 @@ class Manager(object):
                                     temp.append(encoder(des_tokens, extract_type="cls")["cls_representation"])
                                 temp = torch.stack(temp, dim=0)
                                 temp = torch.mean(temp, dim=0)
-                                temp = temp.squeeze(0)
                                 
                                 description_out[self.rel2id[rel]] = temp
                     # New   
@@ -815,7 +814,7 @@ class Manager(object):
 
             # train encoder
             if steps == 0:
-                self.train_encoder(args, encoder, id_cur_data, cur_training_data, seen_descriptions, task_id=steps, beta=args.contrastive_loss_coeff)
+                self.train_encoder(args, encoder, cur_training_data, seen_descriptions, task_id=steps, beta=args.contrastive_loss_coeff)
 
             # new prompt pool
             self.prompt_pools.append(Prompt(args).to(args.device))
