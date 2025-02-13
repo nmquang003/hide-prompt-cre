@@ -178,7 +178,7 @@ class Manager(object):
                     if args.use_ct_in_encoder == "yes":             
                         # New
                         if args.type_ctloss == "new":
-                            if step % 20==0:
+                            if step % 25==0:
                                 negative_dict = self.find_negative_labels(args, encoder, seen_description)
                             
                             all_description_label_need_cal = []
