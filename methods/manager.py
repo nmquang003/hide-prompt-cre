@@ -115,17 +115,18 @@ class Manager(object):
         description_matrix = []
         
         rel2id = dict()
-        for idx, (rel, descriptions) in enumerate(seen_description.items()):
-            rel2id[idx] = self.rel2id[rel]
-            temp = []
-            for description in descriptions:
-                des_tokens = torch.tensor([description['token_ids']]).to(args.device)
-                temp.append(encoder(des_tokens, extract_type="cls")["cls_representation"])
-            temp = torch.stack(temp, dim=0)
-            temp = torch.mean(temp, dim=0)
-            temp = temp.squeeze(0)
-            description_out[self.rel2id[rel]] = temp
-            description_matrix.append(temp)
+        with torch.no_grad():
+            for idx, (rel, descriptions) in enumerate(seen_description.items()):
+                rel2id[idx] = self.rel2id[rel]
+                temp = []
+                for description in descriptions:
+                    des_tokens = torch.tensor([description['token_ids']]).to(args.device)
+                    temp.append(encoder(des_tokens, extract_type="cls")["cls_representation"])
+                temp = torch.stack(temp, dim=0)
+                temp = torch.mean(temp, dim=0)
+                temp = temp.squeeze(0)
+                description_out[self.rel2id[rel]] = temp
+                description_matrix.append(temp)
             
             
         description_matrix = torch.stack(description_matrix, dim=0).to(args.device)
