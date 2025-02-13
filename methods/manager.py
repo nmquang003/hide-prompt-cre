@@ -133,7 +133,7 @@ class Manager(object):
         similarities = sim(description_matrix, description_matrix) / 5  # (N, M)
         
         # Sắp xếp theo giá trị giảm dần (dim=1 để sắp theo hàng)
-        _, topk_indices = torch.topk(similarities, k=k+1, dim=1)  # k+1 để bỏ chính nó
+        _, topk_indices = torch.topk(similarities, k=min(k+1,description_matrix.shape(0)), dim=1)  # k+1 để bỏ chính nó
         
         # Bỏ chính nó (index đầu tiên)
         topk_indices = topk_indices[:, 1:].tolist()  # Chuyển thành list để dễ dùng
