@@ -109,6 +109,7 @@ class Manager(object):
                 bn_update(data_loader, swag_classifier)
 
     # NgoDinhLuyen Add Function calculate negative period
+    @torch.no_grad()
     def find_negative_labels(self, args, encoder, seen_description, k=4):
         negative_dict = dict()
         description_out = {}
@@ -121,7 +122,10 @@ class Manager(object):
                 temp = []
                 for description in descriptions:
                     des_tokens = torch.tensor([description['token_ids']]).to(args.device)
-                    temp.append(encoder(des_tokens, extract_type="cls")["cls_representation"])
+                    output = encoder(des_tokens, extract_type="cls")["cls_representation"]
+                    output = output.detach().cpu()
+                    temp.append(output)
+
                 temp = torch.stack(temp, dim=0)
                 temp = torch.mean(temp, dim=0)
                 temp = temp.squeeze(0)
@@ -129,7 +133,7 @@ class Manager(object):
                 description_matrix.append(temp)
             
             
-        description_matrix = torch.stack(description_matrix, dim=0).to(args.device)
+        description_matrix = torch.stack(description_matrix, dim=0)
     
         # Tính cosine similarity giữa reps và descriptions
         similarities = sim(description_matrix, description_matrix) / 5  # (N, M)
@@ -202,6 +206,7 @@ class Manager(object):
                                 temp = torch.stack(temp, dim=0)
                                 temp = torch.mean(temp, dim=0)
                                 temp = temp.squeeze(0)
+                                
                                 description_out[self.rel2id[rel]] = temp
                     # New   
                     else: 
@@ -327,13 +332,30 @@ class Manager(object):
                                 all_description_label_need_cal.append(lab)
                     
                     description_out = {}
+                    
+                    apply_grad_list = random.sample(all_description_label_need_cal, min(args.num_grad_description_per_step, len(all_description_label_need_cal)))
+                    
                     for rel, descriptions in seen_description.items():
                         if self.rel2id[rel] in all_description_label_need_cal:
-                            temp = []
-                            for description in descriptions:
-                                des_tokens = torch.tensor([description['token_ids']]).to(args.device)
-                                temp.append(encoder(des_tokens, extract_type="cls")["cls_representation"])
-                            description_out[self.rel2id[rel]] = temp                
+                            if self.rel2id[rel] in apply_grad_list:
+                                temp = []
+                                for description in descriptions:
+                                    des_tokens = torch.tensor([description['token_ids']]).to(args.device)
+                                    temp.append(encoder(des_tokens, extract_type="cls")["cls_representation"])
+                                temp = torch.stack(temp, dim=0)
+                                temp = torch.mean(temp, dim=0)
+                
+                                description_out[self.rel2id[rel]] = temp   
+                            else:
+                                with torch.no_grad():
+                                    temp = []
+                                    for description in descriptions:
+                                        des_tokens = torch.tensor([description['token_ids']]).to(args.device)
+                                        temp.append(encoder(des_tokens, extract_type="cls")["cls_representation"])
+                                    temp = torch.stack(temp, dim=0)
+                                    temp = torch.mean(temp, dim=0)
+                    
+                                    description_out[self.rel2id[rel]] = temp       
                 # New   
                 else:
                 # Old
@@ -343,6 +365,9 @@ class Manager(object):
                         for description in descriptions:
                             des_tokens = torch.tensor([description['token_ids']]).to(args.device)
                             temp.append(encoder(des_tokens, extract_type="cls")["cls_representation"])
+                        temp = torch.stack(temp, dim=0)
+                        temp = torch.mean(temp, dim=0)
+                        
                         description_out[self.rel2id[rel]] = temp
                 # Old
                 
@@ -769,6 +794,7 @@ class Manager(object):
             # initialize
             cur_training_data = []
             cur_test_data = []
+            id_cur_data = []
             for i, relation in enumerate(current_relations):
                 cur_training_data += training_data[relation]
                 seen_data[relation] = training_data[relation]
@@ -776,6 +802,7 @@ class Manager(object):
 
                 rel_id = self.rel2id[relation]
                 self.id2taskid[rel_id] = steps
+                id_cur_data.append(rel_id)
 
             # NgoDinhLuyen EoE
             self.expert_distribution.append({
@@ -788,7 +815,7 @@ class Manager(object):
 
             # train encoder
             if steps == 0:
-                self.train_encoder(args, encoder, cur_training_data, seen_descriptions, task_id=steps, beta=args.contrastive_loss_coeff)
+                self.train_encoder(args, encoder, id_cur_data, cur_training_data, seen_descriptions, task_id=steps, beta=args.contrastive_loss_coeff)
 
             # new prompt pool
             self.prompt_pools.append(Prompt(args).to(args.device))
