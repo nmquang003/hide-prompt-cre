@@ -40,6 +40,7 @@ class Manager(object):
         self.query_mode = "mahalanobis"
         self.max_expert = -1
         self.eoeid2waveid = {}
+        self.beta = args.beta
         # NgoDinhLuyen EoE
 
     def train_classifier(self, args, classifier, swag_classifier, replayed_epochs, name):
@@ -231,7 +232,7 @@ class Manager(object):
                             CT_loss =  contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs) # constractive loss
                         # Old
                     if args.use_ct_in_encoder == "yes":
-                        loss = CE_loss + CT_loss*beta
+                        loss = CE_loss + CT_loss*self.beta
                     else:
                         loss = CE_loss
                         CT_loss = torch.tensor(0.0)
@@ -362,7 +363,7 @@ class Manager(object):
                     CT_loss =  contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs) # constractive loss
                 # Old
                 
-                loss = CE_loss + prompt_reduce_sim_loss + CT_loss*beta
+                loss = CE_loss + prompt_reduce_sim_loss + CT_loss*self.beta
                 losses.append(loss.item())
                 loss.backward()
                 
