@@ -5,6 +5,52 @@ import numpy as np
 from transformers import BertConfig, BertModel
 from transformers.models.bert.modeling_bert import BertPreTrainedModel, BertEmbeddings, BertEncoder, BertPooler
 
+# NgoDinhLuyen EoE
+class BaseBert(nn.Module):
+    def __init__(self, config):
+        super(BaseBert, self).__init__()
+        
+        # Khởi tạo BERT model
+        self.bert = BertModel.from_pretrained("bert-base-uncased", output_hidden_states=False)
+        self.config = config
+        
+        # Kiểm tra pattern
+        if config.pattern in ["entity_marker"]:
+            self.pattern = config.pattern
+            self.bert.resize_token_embeddings(config.vocab_size + config.marker_size)
+        else:
+            raise ValueError("Wrong encoding.")
+
+    def forward(self, input_ids, attention_mask=None, token_type_ids=None):
+        out = dict()
+        # Lấy đầu ra từ BERT
+        out = self.bert(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
+            return_dict=True
+        )
+
+        last_hidden_state = out["last_hidden_state"]  # Lấy output đúng key
+
+        # Lấy vị trí của entity markers [E11] (30522) và [E21] (30524)
+        e11 = (input_ids == 30522).nonzero(as_tuple=True)
+        e21 = (input_ids == 30524).nonzero(as_tuple=True)
+
+        output = []
+        for i in range(len(e11[0])):
+            instance_output = last_hidden_state[e11[0][i], [e11[1][i], e21[1][i]]]  # Lấy embedding của hai entity markers
+            instance_output = instance_output.view(1, -1)
+            
+            output.append(instance_output)
+
+        output = torch.cat(output, dim=0)  # Ghép các tensor lại
+        # output = output.view(output.shape[0], -1)  # Reshape về dạng phù hợp
+        
+        out["x_encoded"] = output
+        return out
+
+# NgoDinhLuyen EoE
 
 class CustomedBertEmbeddings(BertEmbeddings):
     def __init__(self, config):

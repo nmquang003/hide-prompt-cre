@@ -36,7 +36,7 @@ class data_sampler(object):
         self.id2rel, self.rel2id = self._read_relations(args.relation_file)
         
         # read relation description
-        self.rel2desc = self._read_description(args.description_file)
+        self.rel2desc = self._read_description(args.description_file, args.description_file_name)
 
         # random sampling
         self.seed = seed
@@ -45,6 +45,11 @@ class data_sampler(object):
         self.shuffle_index = list(range(len(self.id2rel)))
         random.shuffle(self.shuffle_index)
         self.shuffle_index = np.argsort(self.shuffle_index)
+
+        # NgoDinhLuyen EoE
+        self.eoeid2waveid = {}      
+        self.eoeid2waveid = {sorted_idx : shuffled_idx for sorted_idx, shuffled_idx in enumerate(self.shuffle_index)}
+        # NgoDinhLuyen EoE
 
         # regenerate data
         self.training_dataset, self.valid_dataset, self.test_dataset = self._read_data(self.args.data_file)
@@ -63,7 +68,8 @@ class data_sampler(object):
         if args.dataname in ["FewRel"]:
             args.data_file = os.path.join(args.data_path, "data_with{}_marker.json".format(use_marker))
             args.relation_file = os.path.join(args.data_path, "id2rel.json")
-            args.description_file = os.path.join(args.data_path, "FewRel/relation_description_new.txt")
+            args.description_file_name = os.path.join(args.data_path, "FewRel/relation_description_new.txt")
+            args.description_file = os.path.join(args.data_path, "FewRel/relation_description_detail_10.txt")
             args.num_of_relation = 80
             args.num_of_train = 420
             args.num_of_val = 140
@@ -71,7 +77,8 @@ class data_sampler(object):
         elif args.dataname in ["TACRED"]:
             args.data_file = os.path.join(args.data_path, "data_with{}_marker_tacred.json".format(use_marker))
             args.relation_file = os.path.join(args.data_path, "id2rel_tacred.json")
-            args.description_file = os.path.join(args.data_path, "TACRED/relation_description.txt")
+            args.description_file_name = os.path.join(args.data_path, "TACRED/relation_description.txt")
+            args.description_file = os.path.join(args.data_path, "TACRED/relation_description_detail_10.txt")
             args.num_of_relation = 40
             args.num_of_train = 420
             args.num_of_val = 140
@@ -174,14 +181,18 @@ class data_sampler(object):
             rel2id[x] = i
         return id2rel, rel2id
     
-    def _read_description(self, file):
-        des = pd.read_csv(file, sep="\t", header=None)
+    def _read_description(self, file, file_name):
+        des = pd.read_csv(file, sep="\t", header=None, encoding="ISO-8859-1")
+        des_name = pd.read_csv(file_name, sep="\t", header=None, encoding="ISO-8859-1")
         rel2desc = {}
         for i in range(len(des)):
-            token_ids = self.tokenizer.encode(des[2][i], padding="max_length", truncation=True, max_length=self.args.max_length)
-            rel2desc[des[0][i]] = {
-                "description": des[2][i],
-                "token_ids": token_ids
-            }
-            
+            temp = []
+            for j in range(2, min(2 + self.args.num_descriptions, 12)):
+                token_ids = self.tokenizer.encode(des[j][i], padding="max_length", truncation=True, max_length=self.args.max_length)
+                temp.append({
+                    "description": des[j][i],
+                    "token_ids": token_ids
+                })
+            rel2desc[des_name[0][i]] =  temp
+        
         return rel2desc
