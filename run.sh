@@ -11,9 +11,9 @@ num_negs=(4)
 seeds=(2021)
 pull_constraint_coeffs=(0.1)
 contrastive_loss_coeffs=(0.1)
-encoder_epochs = (15 20)
-prompt_pool_epochs = (15 20)
-classifier_epochs = (150 200)
+encoder_epochs=(15 20)
+prompt_pool_epochs=(15 20)
+classifier_epochs=(150 200)
 
 # Lặp qua tất cả các kết hợp tham số
 for dataname in "${datanames[@]}"; do
