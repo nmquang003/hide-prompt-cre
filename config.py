@@ -19,6 +19,7 @@ class Param:
         parser.add_argument("--use_ct_in_encoder", default="yes", type=str)
         parser.add_argument("--beta", default=0.1, type=float)
         parser.add_argument("--num_grad_description_per_step", default=3, type=int)
+        parser.add_argument("--strategy", default=1, type=int)
         
         # common parameters
         parser.add_argument("--gpu", default=0, type=int)

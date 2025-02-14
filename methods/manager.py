@@ -332,21 +332,23 @@ class Manager(object):
                     
                     description_out = {}
                     
-                    apply_grad_list = random.sample(all_description_label_need_cal, min(args.num_grad_description_per_step, len(all_description_label_need_cal)))
-                    
-                    for rel, descriptions in seen_description.items():
-                        if self.rel2id[rel] in all_description_label_need_cal:
-                            if self.rel2id[rel] in apply_grad_list:
+                    if args.strategy == 1:
+                        for rel, descriptions in seen_description.items():
+                            if self.rel2id[rel] in all_description_label_need_cal:
                                 temp = []
                                 for description in descriptions:
                                     des_tokens = torch.tensor([description['token_ids']]).to(args.device)
                                     temp.append(encoder(des_tokens, extract_type="cls")["cls_representation"])
                                 temp = torch.stack(temp, dim=0)
                                 temp = torch.mean(temp, dim=0)
-                
-                                description_out[self.rel2id[rel]] = temp   
-                            else:
-                                with torch.no_grad():
+                                
+                                description_out[self.rel2id[rel]] = temp
+                    elif args.strategy == 2:
+                        apply_grad_list = random.sample(all_description_label_need_cal, min(args.num_grad_description_per_step, len(all_description_label_need_cal)))
+                        
+                        for rel, descriptions in seen_description.items():
+                            if self.rel2id[rel] in all_description_label_need_cal:
+                                if self.rel2id[rel] in apply_grad_list:
                                     temp = []
                                     for description in descriptions:
                                         des_tokens = torch.tensor([description['token_ids']]).to(args.device)
@@ -354,7 +356,27 @@ class Manager(object):
                                     temp = torch.stack(temp, dim=0)
                                     temp = torch.mean(temp, dim=0)
                     
-                                    description_out[self.rel2id[rel]] = temp       
+                                    description_out[self.rel2id[rel]] = temp   
+                                else:
+                                    with torch.no_grad():
+                                        temp = []
+                                        for description in descriptions:
+                                            des_tokens = torch.tensor([description['token_ids']]).to(args.device)
+                                            temp.append(encoder(des_tokens, extract_type="cls")["cls_representation"])
+                                        temp = torch.stack(temp, dim=0)
+                                        temp = torch.mean(temp, dim=0)
+                        
+                                        description_out[self.rel2id[rel]] = temp  
+                    elif args.strategy == 3:
+                        for rel, descriptions in seen_description.items():
+                            if self.rel2id[rel] in all_description_label_need_cal:
+                                temp = []
+                                description = random.choice(descriptions)
+                                des_tokens = torch.tensor([description['token_ids']]).to(args.device)
+                                temp = encoder(des_tokens, extract_type="cls")["cls_representation"]
+                                temp = temp.squeeze(0)
+                                
+                                description_out[self.rel2id[rel]] = temp 
                 # New   
                 else:
                 # Old
