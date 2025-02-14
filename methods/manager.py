@@ -904,7 +904,7 @@ class Manager(object):
                 "task": steps,
                 "results": list(acc_sum),
             })
-
+            
             # Tạo thư mục lưu kết quả dựa trên seed và các tham số quan trọng
             result_dir = f"./results/{args.dataname}_seed{args.seed}_encEp{args.encoder_epochs}_promptEp{args.prompt_pool_epochs}_clsEp{args.classifier_epochs}_promptLen{args.prompt_length}_pull{args.pull_constraint_coeff}_contrast{args.contrastive_loss_coeff}"
             if not os.path.exists(result_dir):

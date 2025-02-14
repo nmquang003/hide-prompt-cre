@@ -9,11 +9,11 @@ prompt_lengths=(16)
 prompt_top_ks=(8)
 num_negs=(4)
 seeds=(2021)
-pull_constraint_coeffs=(0.05 0.1)
-contrastive_loss_coeffs=(0.05 0.1)
-encoder_epochs = (10 15 20)
-prompt_pool_epochs = (10 15 20)
-classifier_epochs = (100 150 200)
+pull_constraint_coeffs=(0.1)
+contrastive_loss_coeffs=(0.1)
+encoder_epochs = (15 20)
+prompt_pool_epochs = (15 20)
+classifier_epochs = (150 200)
 
 # Lặp qua tất cả các kết hợp tham số
 for dataname in "${datanames[@]}"; do
