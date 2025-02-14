@@ -374,7 +374,6 @@ class Manager(object):
                                 description = random.choice(descriptions)
                                 des_tokens = torch.tensor([description['token_ids']]).to(args.device)
                                 temp = encoder(des_tokens, extract_type="cls")["cls_representation"]
-                                temp = temp.squeeze(0)
                                 
                                 description_out[self.rel2id[rel]] = temp 
                 # New   
