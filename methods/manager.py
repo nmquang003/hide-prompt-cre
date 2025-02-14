@@ -839,61 +839,86 @@ class Manager(object):
                 self.train_classifier(args, classifier, swag_classifier, self.replayed_key, "train_classifier_epoch_")
                 self.train_classifier(args, prompted_classifier, swag_prompted_classifier, self.replayed_data, "train_prompted_classifier_epoch_")
 
-                # prediction
-                print("===NON-SWAG===")
-                results = []
-                for i, i_th_test_data in enumerate(all_tasks):
-                    results.append([
-                        len(i_th_test_data), 
-                        self.evaluate_strict_model(args, encoder, classifier, prompted_classifier, 
-                                                    i_th_test_data, f"test_task_{i+1}", steps)
-                    ])
-                cur_acc = results[-1][1]
-                total_acc = sum([result[0] * result[1] for result in results]) / sum([result[0] for result in results])
-                print(f"current test accuracy: {cur_acc}")
-                print(f"history test accuracy: {total_acc}")
-                test_cur.append(cur_acc)
-                test_total.append(total_acc)
+            # prediction
+            print("===NON-SWAG===")
+            results = []
+            log_text = []  # Dùng để lưu các dòng cần ghi ra file .txt
 
-                print("===SWAG===")
-                results = []
-                for i, i_th_test_data in enumerate(all_tasks):
-                    results.append([
-                        len(i_th_test_data), 
-                        self.evaluate_strict_model(args, encoder, swag_classifier, swag_prompted_classifier, 
-                                                   i_th_test_data, f"test_task_{i+1}", steps)
-                    ])
-                cur_acc = results[-1][1]
-                total_acc = sum([result[0] * result[1] for result in results]) / sum([result[0] for result in results])
-                print(f"current test accuracy: {cur_acc}")
-                print(f"history test accuracy: {total_acc}")
-                test_cur.append(cur_acc)
-                test_total.append(total_acc)
+            for i, i_th_test_data in enumerate(all_tasks):
+                result = self.evaluate_strict_model(
+                    args, encoder, classifier, prompted_classifier, 
+                    i_th_test_data, f"test_task_{i+1}", steps
+                )
+                results.append([len(i_th_test_data), result])
+                log_text.append(f"Task {i+1}: len={len(i_th_test_data)}, acc={result}")
 
-                acc_sum =[]
-                print("===UNTIL-NOW===")
-                print("accuracies:")
-                for x in test_cur:
-                    print(x)
-                print("arverages:")
-                for x in test_total:
-                    print(x)
-                    acc_sum.append(x)
-                    
-                results.append({
-                    "task": steps,
-                    "results": list(acc_sum),
-                })
-                
-                # Tạo thư mục lưu kết quả dựa trên seed và các tham số quan trọng
-                result_dir = f"./results/{args.dataname}_seed{args.seed}_encLR{args.encoder_lr}_clsLR{args.classifier_lr}_promptLen{args.prompt_length}_pull{args.pull_constraint_coeff}_contrast{args.contrastive_loss_coeff}"
-                if not os.path.exists(result_dir):
-                    os.makedirs(result_dir)
+            cur_acc = results[-1][1]
+            total_acc = sum([result[0] * result[1] for result in results]) / sum([result[0] for result in results])
+            print(f"current test accuracy: {cur_acc}")
+            print(f"history test accuracy: {total_acc}")
+            log_text.append(f"current test accuracy: {cur_acc}")
+            log_text.append(f"history test accuracy: {total_acc}")
+            test_cur.append(cur_acc)
+            test_total.append(total_acc)
 
-                # Lưu kết quả với tên file chứa thông tin về bước hiện tại
-                result_file = f"{result_dir}/task_{steps}.pickle"
-                with open(result_file, "wb") as file:
-                    pickle.dump(results, file)
+            print("===SWAG===")
+            log_text.append("===SWAG===")
+            results = []
+
+            for i, i_th_test_data in enumerate(all_tasks):
+                result = self.evaluate_strict_model(
+                    args, encoder, swag_classifier, swag_prompted_classifier, 
+                    i_th_test_data, f"test_task_{i+1}", steps
+                )
+                results.append([len(i_th_test_data), result])
+                log_text.append(f"Task {i+1}: len={len(i_th_test_data)}, acc={result}")
+
+            cur_acc = results[-1][1]
+            total_acc = sum([result[0] * result[1] for result in results]) / sum([result[0] for result in results])
+            print(f"current test accuracy: {cur_acc}")
+            print(f"history test accuracy: {total_acc}")
+            log_text.append(f"current test accuracy: {cur_acc}")
+            log_text.append(f"history test accuracy: {total_acc}")
+            test_cur.append(cur_acc)
+            test_total.append(total_acc)
+
+            acc_sum = []
+            print("===UNTIL-NOW===")
+            print("accuracies:")
+            log_text.append("===UNTIL-NOW===")
+            log_text.append("accuracies:")
+
+            for x in test_cur:
+                print(x)
+                log_text.append(str(x))
+
+            print("averages:")
+            log_text.append("averages:")
+
+            for x in test_total:
+                print(x)
+                acc_sum.append(x)
+                log_text.append(str(x))
+
+            results.append({
+                "task": steps,
+                "results": list(acc_sum),
+            })
+
+            # Tạo thư mục lưu kết quả dựa trên seed và các tham số quan trọng
+            result_dir = f"./results/{args.dataname}_seed{args.seed}_encEp{args.encoder_epochs}_promptEp{args.prompt_pool_epochs}_clsEp{args.classifier_epochs}_promptLen{args.prompt_length}_pull{args.pull_constraint_coeff}_contrast{args.contrastive_loss_coeff}"
+            if not os.path.exists(result_dir):
+                os.makedirs(result_dir)
+
+            # Lưu kết quả với tên file chứa thông tin về bước hiện tại
+            result_file = f"{result_dir}/output.pickle"
+            with open(result_file, "wb") as file:
+                pickle.dump(results, file)
+
+            # Ghi log ra file .txt
+            log_file = f"{result_dir}/log.txt"
+            with open(log_file, "w") as file:
+                file.write("\n".join(log_text))
 
 
         del self.memorized_samples, 
