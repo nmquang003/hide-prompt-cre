@@ -23,6 +23,7 @@ from tqdm import tqdm, trange
 import pickle
 import wandb
 import time
+import yaml
 
 class Manager(object):
     def __init__(self, args):
@@ -751,10 +752,13 @@ class Manager(object):
         
         # mkdir for logs
         time_stamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
-        result_dir = f"./results/{args.dataname}_seed{args.seed}_{time_stamp}"
+        result_dir = f"./results"
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
         log_text = []  # Dùng để lưu các dòng cần ghi ra file .txt
+        # log value of args
+        log_text.append(f"hyper-parameter configurations:")
+        log_text.append(yaml.dump(args.__dict__, sort_keys=True, indent=4))
 
         for steps, (training_data, valid_data, test_data, current_relations, 
                     historic_test_data, seen_relations, seen_descriptions) in enumerate(sampler):
@@ -913,7 +917,7 @@ class Manager(object):
             #     pickle.dump(results, file)
 
             # Ghi log ra file .txt
-            log_file = f"{result_dir}/log.txt"
+            log_file = f"{result_dir}/{args.dataname}_{args.seed}_{time_stamp}.txt"
             with open(log_file, "w") as file:
                 file.write("\n".join(log_text))
 
