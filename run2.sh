@@ -36,6 +36,7 @@ for combination in "${combinations[@]}"; do
 
     # Run the Python command with the current combination
     python run.py \
+        --gpu 0 \
         --max_length 256 \
         --dataname $dataname \
         --encoder_epochs $encoder_epochs \
