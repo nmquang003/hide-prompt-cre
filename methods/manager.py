@@ -22,6 +22,7 @@ from sklearn.mixture import GaussianMixture
 from tqdm import tqdm, trange
 import pickle
 import wandb
+import time
 
 class Manager(object):
     def __init__(self, args):
@@ -747,6 +748,13 @@ class Manager(object):
         all_train_tasks = []
         all_tasks = []
         seen_data = {}
+        
+        # mkdir for logs
+        time_stamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+        result_dir = f"./results/{args.dataname}_seed{args.seed}_{time_stamp}"
+        if not os.path.exists(result_dir):
+            os.makedirs(result_dir)
+        log_text = []  # Dùng để lưu các dòng cần ghi ra file .txt
 
         for steps, (training_data, valid_data, test_data, current_relations, 
                     historic_test_data, seen_relations, seen_descriptions) in enumerate(sampler):
@@ -842,8 +850,7 @@ class Manager(object):
             # prediction
             print("===NON-SWAG===")
             results = []
-            log_text = []  # Dùng để lưu các dòng cần ghi ra file .txt
-
+            
             for i, i_th_test_data in enumerate(all_tasks):
                 result = self.evaluate_strict_model(
                     args, encoder, classifier, prompted_classifier, 
@@ -856,13 +863,10 @@ class Manager(object):
             total_acc = sum([result[0] * result[1] for result in results]) / sum([result[0] for result in results])
             print(f"current test accuracy: {cur_acc}")
             print(f"history test accuracy: {total_acc}")
-            log_text.append(f"current test accuracy: {cur_acc}")
-            log_text.append(f"history test accuracy: {total_acc}")
             test_cur.append(cur_acc)
             test_total.append(total_acc)
 
             print("===SWAG===")
-            log_text.append("===SWAG===")
             results = []
 
             for i, i_th_test_data in enumerate(all_tasks):
@@ -871,21 +875,19 @@ class Manager(object):
                     i_th_test_data, f"test_task_{i+1}", steps
                 )
                 results.append([len(i_th_test_data), result])
-                log_text.append(f"Task {i+1}: len={len(i_th_test_data)}, acc={result}")
 
             cur_acc = results[-1][1]
             total_acc = sum([result[0] * result[1] for result in results]) / sum([result[0] for result in results])
             print(f"current test accuracy: {cur_acc}")
             print(f"history test accuracy: {total_acc}")
-            log_text.append(f"current test accuracy: {cur_acc}")
-            log_text.append(f"history test accuracy: {total_acc}")
+
             test_cur.append(cur_acc)
             test_total.append(total_acc)
 
             acc_sum = []
-            print("===UNTIL-NOW===")
+            print(f"===UNTIL-NOW=== Task {steps+1}")
             print("accuracies:")
-            log_text.append("===UNTIL-NOW===")
+            log_text.append(f"===UNTIL-NOW=== Task {steps+1}")
             log_text.append("accuracies:")
 
             for x in test_cur:
@@ -900,20 +902,15 @@ class Manager(object):
                 acc_sum.append(x)
                 log_text.append(str(x))
 
-            results.append({
-                "task": steps,
-                "results": list(acc_sum),
-            })
-            
-            # Tạo thư mục lưu kết quả dựa trên seed và các tham số quan trọng
-            result_dir = f"./results/{args.dataname}_seed{args.seed}_encEp{args.encoder_epochs}_promptEp{args.prompt_pool_epochs}_clsEp{args.classifier_epochs}_promptLen{args.prompt_length}_pull{args.pull_constraint_coeff}_contrast{args.contrastive_loss_coeff}"
-            if not os.path.exists(result_dir):
-                os.makedirs(result_dir)
+            # results.append({
+            #     "task": steps,
+            #     "results": list(acc_sum),
+            # })
 
             # Lưu kết quả với tên file chứa thông tin về bước hiện tại
-            result_file = f"{result_dir}/output.pickle"
-            with open(result_file, "wb") as file:
-                pickle.dump(results, file)
+            # result_file = f"{result_dir}/output.pickle"
+            # with open(result_file, "wb") as file:
+            #     pickle.dump(results, file)
 
             # Ghi log ra file .txt
             log_file = f"{result_dir}/log.txt"
