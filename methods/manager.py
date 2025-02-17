@@ -755,6 +755,7 @@ class Manager(object):
         result_dir = f"./results"
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
+        log_file = f"{result_dir}/{args.dataname}_{args.seed}_{time_stamp}.txt"
         log_text = []  # Dùng để lưu các dòng cần ghi ra file .txt
         # log value of args
         log_text.append(f"hyper-parameter configurations:")
@@ -917,7 +918,6 @@ class Manager(object):
             #     pickle.dump(results, file)
 
             # Ghi log ra file .txt
-            log_file = f"{result_dir}/{args.dataname}_{args.seed}_{time_stamp}.txt"
             with open(log_file, "w") as file:
                 file.write("\n".join(log_text))
 
