@@ -101,9 +101,8 @@ class General_Prompt(nn.Module):
 
         similarity = torch.matmul(x_key_norm, prompt_key_norm.t())
         
-        
-        ones_column = torch.ones((softmax_sim.shape[0], 0.5))
         softmax_sim = F.softmax(similarity, dim=1) * 0.5
+        ones_column = 0.5 * torch.ones((softmax_sim.shape[0], 1), device=softmax_sim.device)
         
         softmax_sim = torch.cat([ones_column, softmax_sim], dim=1)
 
