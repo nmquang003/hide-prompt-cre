@@ -183,7 +183,7 @@ class Manager(object):
                 if args.use_ct_in_encoder == "yes":             
                     # New
                     if args.type_ctloss == "new":
-                        if step % 25==0:
+                        if step % 50 ==0:
                             negative_dict = self.find_negative_labels(args, encoder, seen_description)
                         
                         all_description_label_need_cal = []
@@ -317,7 +317,7 @@ class Manager(object):
                 
                 # New 
                 if args.type_ctloss == "new":
-                    if step % 25==0:
+                    if step % 50 ==0:
                         negative_dict = self.find_negative_labels(args, encoder, seen_description)
                     
                     all_description_label_need_cal = []
@@ -838,7 +838,10 @@ class Manager(object):
                 self.train_encoder(args, encoder, cur_training_data, seen_descriptions, task_id=steps, beta=args.contrastive_loss_coeff)
 
             # new prompt pool
-            self.prompt_pools.append(Prompt(args).to(args.device))
+            if args.use_general_pp == 1:
+                self.prompt_pools.append(General_Prompt(args).to(args.device))
+            else:
+                self.prompt_pools.append(Prompt(args).to(args.device))
             self.train_prompt_pool(args, encoder, self.prompt_pools[-1], 
                                    cur_training_data, seen_descriptions,
                                    task_id=steps, beta=args.contrastive_loss_coeff)
