@@ -142,7 +142,9 @@ class Prompt(nn.Module):
 
         # Kết hợp embedding của prompt và x_embed
         if self.general_prompt is not None:
-            out["prompted_embedding"] = torch.cat([self.general_prompt, mean_result, x_embed], dim=1)  
+            batch_size = x_embed.shape[0]  # Lấy batch_size từ x_embed
+            general_prompt_expanded = self.general_prompt.unsqueeze(0).expand(batch_size, -1, -1)
+            out["prompted_embedding"] = torch.cat([general_prompt_expanded, mean_result, x_embed], dim=1)
         else:
             out["prompted_embedding"] = torch.cat([mean_result, x_embed], dim=1)  
         # (batch_size, length + x_embed.shape[1], embed_dim)
