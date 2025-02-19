@@ -63,6 +63,7 @@ class General_Prompt(nn.Module):
     def __init__(self, args):
         super().__init__()
 
+        self.args = args
         self.length = args.prompt_length
         self.embed_dim = args.prompt_embed_dim
         self.pool_size = args.prompt_pool_size
