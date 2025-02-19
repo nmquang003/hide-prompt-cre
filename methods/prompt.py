@@ -10,6 +10,9 @@ class Prompt(nn.Module):
         self.embed_dim = args.prompt_embed_dim
         self.pool_size = args.prompt_pool_size
         self.top_k = args.prompt_top_k
+        # ensure that the top_k is less than the pool_size
+        if self.top_k > self.pool_size:
+            self.top_k = self.pool_size
         self.prompt_type = args.prompt_type
         
         # total prompt length
