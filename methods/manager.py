@@ -164,8 +164,9 @@ class Manager(object):
             td = tqdm(data_loader_, desc=name)
 
             sampled = 0
-            total_hits = 0 
-            negative_dict = self.find_negative_labels(args, encoder, seen_description)
+            total_hits = 0
+            if args.num_descriptions > 0:
+                negative_dict = self.find_negative_labels(args, encoder, seen_description)
             for step, (labels, tokens, _) in enumerate(td):
                 optimizer.zero_grad()
 
@@ -177,7 +178,7 @@ class Manager(object):
                 # encoder forward
                 encoder_out = encoder(tokens)
                 
-                if args.use_ct_in_encoder == "yes":             
+                if args.use_ct_in_encoder == "yes" and args.num_descriptions > 0:             
                     # New
                     if args.type_ctloss == "new":
                         if step % 25==0:
@@ -224,7 +225,7 @@ class Manager(object):
                 # loss components
                 CE_loss = F.cross_entropy(input=reps, target=targets, reduction="mean") # cross entropy loss
                 
-                if args.use_ct_in_encoder == "yes":
+                if args.use_ct_in_encoder == "yes" and args.num_descriptions > 0:
                     if args.type_ctloss == "new":
                     # New
                         CT_loss =  new_contrastive_loss(encoder_out["x_encoded"], targets, description_out, negative_dict, args.num_descriptions) # constractive loss
@@ -233,7 +234,7 @@ class Manager(object):
                     # Old
                         CT_loss =  contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs) # constractive loss
                     # Old
-                if args.use_ct_in_encoder == "yes":
+
                     loss = CE_loss + CT_loss*self.beta
                 else:
                     loss = CE_loss
@@ -310,7 +311,7 @@ class Manager(object):
                 encoder_out = encoder(tokens, prompt_pool, x_key)
                 
                 # New 
-                if args.type_ctloss == "new":
+                if args.type_ctloss == "new" and args.num_descriptions > 0:
                     if step % 20==0:
                         negative_dict = self.find_negative_labels(args, encoder, seen_description)
                     
@@ -332,8 +333,9 @@ class Manager(object):
                                 des_tokens = torch.tensor([description['token_ids']]).to(args.device)
                                 temp.append(encoder(des_tokens, extract_type="cls")["cls_representation"])
                             description_out[self.rel2id[rel]] = temp                
+                    CT_loss =  new_contrastive_loss(encoder_out["x_encoded"], targets, description_out, negative_dict, args.num_descriptions) # constractive loss
                 # New   
-                else:
+                elif args.num_descriptions > 0:
                 # Old
                     description_out = {}
                     for rel, descriptions in seen_description.items():
@@ -342,6 +344,7 @@ class Manager(object):
                             des_tokens = torch.tensor([description['token_ids']]).to(args.device)
                             temp.append(encoder(des_tokens, extract_type="cls")["cls_representation"])
                         description_out[self.rel2id[rel]] = temp
+                    CT_loss =  contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs) # constractive loss
                 # Old
                 
                 # classifier forward
@@ -351,21 +354,16 @@ class Manager(object):
                 probs = F.softmax(reps, dim=1)
                 _, pred = probs.max(1)
                 total_hits += (pred == targets).float().sum().data.cpu().numpy().item()
-
+                
                 # loss components
                 prompt_reduce_sim_loss = -args.pull_constraint_coeff * encoder_out["reduce_sim"]
                 CE_loss = F.cross_entropy(input=reps, target=targets, reduction="mean")
                 
-                if args.type_ctloss == "new":
-                # New
-                    CT_loss =  new_contrastive_loss(encoder_out["x_encoded"], targets, description_out, negative_dict, args.num_descriptions) # constractive loss
-                # New
+                if args.num_descriptions > 0:
+                    loss = CE_loss + prompt_reduce_sim_loss + CT_loss*self.beta
                 else:
-                # Old
-                    CT_loss =  contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs) # constractive loss
-                # Old
-                
-                loss = CE_loss + prompt_reduce_sim_loss + CT_loss*self.beta
+                    loss = CE_loss + prompt_reduce_sim_loss
+                    CT_loss = torch.tensor(0.0)
                 losses.append(loss.item())
                 loss.backward()
                 
