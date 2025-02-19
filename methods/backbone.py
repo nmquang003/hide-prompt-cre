@@ -135,7 +135,7 @@ class BertRelationEncoder(nn.Module):
                 else:
                     additional_length = 0
 
-                instance_output = torch.index_select(out["attention_out"], 0, torch.tensor(i).cuda())
+                # instance_output = torch.index_select(out["attention_out"], 0, torch.tensor(i).cuda())
                 instance_output = torch.index_select(instance_output, 1, torch.tensor([e11[i][1], e21[i][1]]).cuda() + additional_length)
                 output.append(instance_output)
             output = torch.cat(output, dim=0)
