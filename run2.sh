@@ -37,7 +37,8 @@ for combination in "${combinations[@]}"; do
     --prompt_length=$prompt_length,
     --prompt_top_k=$prompt_top_k,
     --prompt_pool_size=$prompt_pool_size,
-    --beta=$beta"
+    --beta=$beta,
+    --num_descriptions=${10}"
 
     # Run the Python command with the current combination
     python run.py \
