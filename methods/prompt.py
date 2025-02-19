@@ -17,7 +17,18 @@ class Prompt(nn.Module):
         
         # total prompt length
         self.total_prompt_length = self.top_k * self.length
-
+        
+        # general prompt
+        self.general_prompt = None
+        if args.use_general_prompt:
+            if args.prompt_init == "zero":
+                self.general_prompt = nn.Parameter(torch.zeros(self.length, self.embed_dim))
+            elif args.prompt_init == "uniform":
+                self.general_prompt = nn.Parameter(torch.randn(self.length, self.embed_dim))
+                nn.init.uniform_(self.general_prompt, -1, 1)
+            else:
+                raise Exception("Not support type of prompt initialization")
+            
         # prompt
         prompt_pool_shape = (self.pool_size, self.length, self.embed_dim)
         if args.prompt_init == "zero":
@@ -130,7 +141,10 @@ class Prompt(nn.Module):
         out["reduce_sim"] = torch.sum(prompt_key_norm[topk_indices] * x_key_norm) / x_embed.shape[0]  # (scalar)
 
         # Kết hợp embedding của prompt và x_embed
-        out["prompted_embedding"] = torch.cat([mean_result, x_embed], dim=1)  
+        if self.general_prompt is not None:
+            out["prompted_embedding"] = torch.cat([self.general_prompt, mean_result, x_embed], dim=1)  
+        else:
+            out["prompted_embedding"] = torch.cat([mean_result, x_embed], dim=1)  
         # (batch_size, length + x_embed.shape[1], embed_dim)
 
         return out

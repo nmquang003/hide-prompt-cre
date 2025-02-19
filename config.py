@@ -36,6 +36,7 @@ class Param:
         parser.add_argument("--vocab_size", default=30522, type=int)
         parser.add_argument("--marker_size", default=4, type=int)
         parser.add_argument("--num_workers", default=0, type=int)
+        parser.add_argument("--use_general_prompt", default=False, type=bool)
 
         # learning rate
         parser.add_argument("--classifier_lr", default=1e-2, type=float)
