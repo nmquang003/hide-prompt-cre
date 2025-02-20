@@ -263,11 +263,19 @@ class Manager(object):
         encoder.eval()
         classifier = Classifier(args=args).to(args.device)
         classifier.train()
-        modules = [classifier, prompt_pool]
-        modules = nn.ModuleList(modules)
-        modules_parameters = modules.parameters()
+        prompt_pool.train()
+        # modules = [classifier, prompt_pool]
+        # modules = nn.ModuleList(modules)
+        # modules_parameters = modules.parameters()
 
-        optimizer = torch.optim.Adam([{"params": modules_parameters, "lr": args.prompt_pool_lr}])
+        # optimizer = torch.optim.Adam([{"params": modules_parameters, "lr": args.prompt_pool_lr}])
+        
+        #quangnm
+        optimizer = torch.optim.Adam([
+            {"params": classifier.parameters(), "lr": args.classifier_lr},
+            {"params": prompt_pool.parameters(), "lr": args.prompt_pool_lr}
+        ])
+        #quangnm
 
         data_loader = get_data_loader(args, training_data, shuffle=True)
         new_training_data = []
@@ -378,7 +386,7 @@ class Manager(object):
                 })
 
                 # params update
-                torch.nn.utils.clip_grad_norm_(modules_parameters, args.max_grad_norm)
+                # torch.nn.utils.clip_grad_norm_(modules_parameters, args.max_grad_norm)
                 optimizer.step()
 
                 # display
