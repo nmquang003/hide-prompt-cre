@@ -749,11 +749,17 @@ class Manager(object):
         seen_data = {}
         
         # mkdir for logs
-        time_stamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
         result_dir = f"./results"
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
-        log_file = f"{result_dir}/{args.dataname}_{args.seed}_{time_stamp}.txt"
+        
+        time_stamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+        log_file = f"{result_dir}/{args.run_name}_{time_stamp}.txt"
+        # Kiểm tra xem file đã tồn tại chưa, nếu tồn tại rồi thì thêm vào cuối tên file một số
+        while os.path.exists(log_file):
+            time_stamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+            log_file = f"{result_dir}/{args.run_name}_{time_stamp}.txt"
+            
         log_text = []  # Dùng để lưu các dòng cần ghi ra file .txt
         # log value of args
         log_text.append(f"hyper-parameter configurations:")
