@@ -25,8 +25,8 @@ for seed in "${seeds[@]}"; do
         prompt_pool_size=$5
         prompt_length=$6
         prompt_top_k=$7
-        num_descriptions=$8
-        beta=$9
+        beta=$8
+        num_descriptions=$9
 
         echo "Running with 
         --dataname=$dataname,
