@@ -4,13 +4,18 @@
 # Each combination is a string with the following format:
 # "dataname seed encoder_epochs prompt_pool_epochs classifier_epochs prompt_length prompt_top_k prompt_pool_size beta"
 combinations=(
-    "FewRel 2021 15 10 200 8 4 8 0.1 1" # Best setting, lk=84
-    "FewRel 2021 15 10 200 8 4 8 0 0" # w/o description
-    "FewRel 2021 15 10 200 8 1 1 0 0" # w/o description and prompt pool
-    "FewRel 2021 15 10 200 8 1 8 0.1 1" # Best setting, lk=81
-    "FewRel 2021 15 10 200 8 2 8 0.1 1" # Best setting, lk=82
-    "FewRel 2021 15 10 200 2 4 8 0.1 1" # Best setting, lk=24
-    "FewRel 2021 15 10 200 4 4 8 0.1 1" # Best setting, lk=42
+    "TACRED 2022 20 15 200 8 4 8 0.1 1" # Best setting, lk=84
+    "TACRED 2022 20 15 200 8 4 8 0 0" # w/o description
+    "TACRED 2022 20 15 200 8 4 20 0 0" # w/o description
+    "TACRED 2022 20 15 200 8 1 1 0 0" # w/o description and prompt pool
+    "TACRED 2023 20 15 200 8 4 8 0.1 1" # Best setting, lk=84
+    "TACRED 2023 20 15 200 8 4 8 0 0" # w/o description
+    "TACRED 2023 20 15 200 8 4 20 0 0" # w/o description
+    "TACRED 2023 20 15 200 8 1 1 0 0" # w/o description and prompt pool
+    # "FewRel 2021 15 10 200 8 1 8 0.1 1" # Best setting, lk=81
+    # "FewRel 2021 15 10 200 8 2 8 0.1 1" # Best setting, lk=82
+    # "FewRel 2021 15 10 200 2 4 8 0.1 1" # Best setting, lk=24
+    # "FewRel 2021 15 10 200 4 4 8 0.1 1" # Best setting, lk=42
 )
 
 # Loop over each combination

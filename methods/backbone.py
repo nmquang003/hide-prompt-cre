@@ -124,12 +124,18 @@ class BertRelationEncoder(nn.Module):
             for i in range(e11.shape[0]):
                 if prompt_pool is not None:
                     # if self.config.prompt_type == "coda_prompt":
-                    additional_length = prompt_pool.length
+                    if prompt_pool.general_prompt is not None:
+                        additional_length = prompt_pool.length*2
+                    else:
+                        additional_length = prompt_pool.length
                     # else:
                     # additional_length = prompt_pool.total_prompt_length
                 elif prompt_pools is not None:
                     # if self.config.prompt_type == "coda_prompt":
-                    additional_length = prompt_pools[0].length
+                    if prompt_pools[0].general_prompt is not None:
+                        additional_length = prompt_pools[0].length*2
+                    else:
+                        additional_length = prompt_pools[0].length
                     # else:
                     # additional_length = prompt_pools[0].total_prompt_length
                 else:
