@@ -7,6 +7,10 @@
 device=0
 seeds=(2021 2121 2221 2321 2421 2521)
 combinations=(
+    "TACRED 20 15 200 8 1 8 0.1 1" # Best setting, lk=18
+    "TACRED 20 15 200 8 2 4 0.1 1" # Best setting, lk=24
+    "TACRED 20 15 200 8 4 2 0.1 1" # Best setting, lk=42
+    "TACRED 20 15 200 8 8 1 0.1 1" # Best setting, lk=81
     "FewRel 20 15 200 8 1 8 0.1 1" # Best setting, lk=18
     "FewRel 20 15 200 8 2 4 0.1 1" # Best setting, lk=24
     "FewRel 20 15 200 8 4 2 0.1 1" # Best setting, lk=42
