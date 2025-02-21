@@ -38,7 +38,7 @@ for seed in "${seeds[@]}"; do
         --prompt_top_k=$prompt_top_k,
         --prompt_pool_size=$prompt_pool_size,
         --beta=$beta,
-        --num_descriptions=${10}"
+        --num_descriptions=$num_descriptions"
 
         # Run the Python command with the current combination
         python run.py \
