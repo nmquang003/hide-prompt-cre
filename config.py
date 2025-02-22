@@ -20,7 +20,7 @@ class Param:
         parser.add_argument("--beta", default=0.1, type=float)
         parser.add_argument("--num_grad_description_per_step", default=3, type=int)
         parser.add_argument("--strategy", default=1, type=int)
-        parser.add_argument("--use_general_pp", default=1, type=int)
+        parser.add_argument("--use_general_pp", default=0, type=int)
         parser.add_argument("--weight_general_prompt", default=0.5, type=float)
         
         # common parameters
