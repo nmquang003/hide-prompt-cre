@@ -5,8 +5,13 @@ pip install transformers
 pip install gpytorch==1.0 python-dotenv --quiet
 ```
 
-
 ### Run code
+
+```bash
+bash run2.sh
+```
+
+### Run single setting
 
 ```bash
 python run.py \
