@@ -1,7 +1,7 @@
 ### Requirements
 
 ```bash
-pip install gpytorch==1.0
+pip install gpytorch==1.0 python-dotenv --quiet
 pip install transformers
 ```
 ### Run code
