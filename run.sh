@@ -1,5 +1,11 @@
 #!/bin/bash
 
+encoder_epochs=(25 30 40)
+prompt_pool_epochs=(15 20 25)
+prompt_pool_size=(8 20 40 60 80)
+prompt_lengths=(4 8 16 20)
+prompt_top_ks=(4 8 13 20)
+
 # Mảng chứa các giá trị tham số khác nhau
 datanames=(TACRED)
 encoder_lrs=(2e-5 5e-5)

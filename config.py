@@ -14,14 +14,7 @@ class Param:
     def all_param(self, parser):
         # eoe tii
         parser.add_argument("--eoe_tii", default="yes", type=str)
-        parser.add_argument("--num_descriptions", default=1, type=int)
-        parser.add_argument("--type_ctloss", default="new", type=str)
-        parser.add_argument("--use_ct_in_encoder", default="yes", type=str)
         parser.add_argument("--beta", default=0.1, type=float)
-        parser.add_argument("--num_grad_description_per_step", default=3, type=int)
-        parser.add_argument("--strategy", default=1, type=int)
-        parser.add_argument("--use_general_pp", default=0, type=int)
-        parser.add_argument("--weight_general_prompt", default=0.5, type=float)
         
         # common parameters
         parser.add_argument("--gpu", default=0, type=int)
