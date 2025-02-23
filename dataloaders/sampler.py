@@ -57,7 +57,6 @@ class data_sampler(object):
 
         # record relations
         self.seen_relations = []
-        self.seen_descriptions = {}
         self.history_test_data = {}
 
     def set_path(self, args):
@@ -108,14 +107,13 @@ class data_sampler(object):
             rel = self.id2rel[index]
             current_relations.append(rel)
             self.seen_relations.append(rel)
-            self.seen_descriptions[rel] = self.rel2desc[rel]
             cur_training_data[rel] = self.training_dataset[index]
             cur_valid_data[rel] = self.valid_dataset[index]
             cur_test_data[rel] = self.test_dataset[index]
             self.history_test_data[rel] = self.test_dataset[index]
 
         return cur_training_data, cur_valid_data, cur_test_data, \
-               current_relations, self.history_test_data, self.seen_relations, self.seen_descriptions
+               current_relations, self.history_test_data, self.seen_relations
 
     def _read_data(self, file):
         if os.path.isfile(self.save_data_path):

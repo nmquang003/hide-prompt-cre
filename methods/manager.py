@@ -6,7 +6,6 @@ from .model import *
 from .backbone import *
 from .prompt import *
 from .utils import *
-from .ct_loss import contrastive_loss, new_contrastive_loss
 from collections import Counter
 
 import torch
@@ -111,7 +110,7 @@ class Manager(object):
     # NgoDinhLuyen Add Function calculate negative period
     @torch.no_grad()
      
-    def train_encoder(self, args, encoder, training_data, seen_description, task_id, beta=0.1):
+    def train_encoder(self, args, encoder, training_data, task_id, beta=0.1):
         encoder.train()
         classifier = Classifier(args=args).to(args.device)
         classifier.train()
@@ -174,7 +173,7 @@ class Manager(object):
         for e_id in range(args.encoder_epochs):
             train_data(data_loader, f"train_encoder_epoch_{e_id + 1}", e_id)
 
-    def train_prompt_pool(self, args, encoder, prompt_pool, training_data, seen_description, task_id, beta=0.1):
+    def train_prompt_pool(self, args, encoder, prompt_pool, training_data, task_id, beta=0.1):
         encoder.eval()
         classifier = Classifier(args=args).to(args.device)
         classifier.train()
@@ -619,7 +618,7 @@ class Manager(object):
         seen_data = {}
 
         for steps, (training_data, valid_data, test_data, current_relations, 
-                    historic_test_data, seen_relations, seen_descriptions) in enumerate(sampler):
+                    historic_test_data, seen_relations) in enumerate(sampler):
             
             # NgoDinhLuyen EoE
             self.num_tasks += 1
@@ -656,15 +655,12 @@ class Manager(object):
 
             # train encoder
             if steps == 0:
-                self.train_encoder(args, encoder, cur_training_data, seen_descriptions, task_id=steps, beta=args.contrastive_loss_coeff)
+                self.train_encoder(args, encoder, cur_training_data, task_id=steps, beta=args.contrastive_loss_coeff)
 
             # new prompt pool
-            if args.use_general_pp == 1:
-                self.prompt_pools.append(General_Prompt(args).to(args.device))
-            else:
-                self.prompt_pools.append(Prompt(args).to(args.device))
+            self.prompt_pools.append(Prompt(args).to(args.device))
             self.train_prompt_pool(args, encoder, self.prompt_pools[-1], 
-                                   cur_training_data, seen_descriptions,
+                                   cur_training_data,
                                    task_id=steps, beta=args.contrastive_loss_coeff)
 
             # NgoDinhLuyen EoE
