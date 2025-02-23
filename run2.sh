@@ -4,7 +4,7 @@
 # Each combination is a string with the following format:
 # "dataname seed encoder_epochs prompt_pool_epochs classifier_epochs prompt_length prompt_top_k prompt_pool_size beta"
 
-device=0
+device=1
 seeds=(2021 2121 2221 2321 2421 2521)
 combinations=(
     "TACRED 20 15 200 8 1 8 0.1 1" # Best setting, lk=18
@@ -33,6 +33,7 @@ for seed in "${seeds[@]}"; do
         num_descriptions=$9
 
         echo "Running with 
+        --gpu=$device,
         --dataname=$dataname,
         --seed=$seed,
         --encoder_epochs=$encoder_epochs,
