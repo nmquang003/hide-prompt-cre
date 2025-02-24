@@ -21,6 +21,7 @@ from sklearn.mixture import GaussianMixture
 from tqdm import tqdm, trange
 import pickle
 import wandb
+from ct_loss import contrastive_loss
 
 class Manager(object):
     def __init__(self, args):
@@ -110,7 +111,7 @@ class Manager(object):
     # NgoDinhLuyen Add Function calculate negative period
     @torch.no_grad()
      
-    def train_encoder(self, args, encoder, training_data, task_id, beta=0.1):
+    def train_encoder(self, args, encoder, training_data, task_id, beta=0.1, seen_descriptions=None):
         encoder.train()
         classifier = Classifier(args=args).to(args.device)
         classifier.train()
@@ -152,6 +153,16 @@ class Manager(object):
                     # loss components
                     CE_loss = F.cross_entropy(input=reps, target=targets, reduction="mean")
                     loss = CE_loss
+                    
+                    # quangnm
+                    if args.num_descriptions > 0:
+                        description_out = {}
+                        for rel, descriptions in seen_descriptions.items():
+                            des_tokens = torch.tensor([descriptions[0]['token_ids']]).to(args.device)
+                            description_out[self.rel2id[rel]] = encoder(des_tokens, extract_type="cls")["cls_representation"]
+                        CT_loss = contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs)
+                        loss += beta * CT_loss
+                        
                     losses.append(loss.item())
                     loss.backward()
 
@@ -655,13 +666,20 @@ class Manager(object):
 
             # train encoder
             if steps == 0:
-                self.train_encoder(args, encoder, cur_training_data, task_id=steps, beta=args.contrastive_loss_coeff)
+                self.train_encoder(args, 
+                                   encoder, 
+                                   cur_training_data, 
+                                   task_id=steps, 
+                                   beta=args.contrastive_loss_coeff,
+                                   seen_descriptions=seen_descriptions)
 
             # new prompt pool
             self.prompt_pools.append(Prompt(args).to(args.device))
             self.train_prompt_pool(args, encoder, self.prompt_pools[-1], 
                                    cur_training_data,
-                                   task_id=steps, beta=args.contrastive_loss_coeff)
+                                   task_id=steps, 
+                                   beta=args.contrastive_loss_coeff,
+                                   seen_descriptions=seen_descriptions)
 
             # NgoDinhLuyen EoE
             self.statistic(args, encoder, cur_training_data, steps)

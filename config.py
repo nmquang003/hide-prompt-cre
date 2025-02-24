@@ -15,6 +15,8 @@ class Param:
         # eoe tii
         parser.add_argument("--eoe_tii", default="yes", type=str)
         parser.add_argument("--beta", default=0.1, type=float)
+        parser.add_argument("--num_descriptions", default=1, type=int)
+        parser.add_argument("--num_negs", default=4, type=int)
         
         # common parameters
         parser.add_argument("--gpu", default=0, type=int)
@@ -46,7 +48,6 @@ class Param:
         # loss balancing
         parser.add_argument("--pull_constraint_coeff", default=0.1, type=float)
         parser.add_argument("--contrastive_loss_coeff", default=0.1, type=float)
-        parser.add_argument("--num_negs", default=4, type=int)
 
         # epochs
         parser.add_argument("--classifier_epochs", default=100, type=int)
