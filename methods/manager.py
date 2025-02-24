@@ -21,7 +21,9 @@ from sklearn.mixture import GaussianMixture
 from tqdm import tqdm, trange
 import pickle
 import wandb
-from ct_loss import contrastive_loss
+from .ct_loss import contrastive_loss
+import time
+import yaml
 
 class Manager(object):
     def __init__(self, args):
@@ -131,60 +133,58 @@ class Manager(object):
             sampled = 0
             total_hits = 0 
             for step, (labels, tokens, _) in enumerate(td):
-                try:
-                    optimizer.zero_grad()
+                optimizer.zero_grad()
 
-                    # batching
-                    sampled += len(labels)
-                    targets = labels.type(torch.LongTensor).to(args.device)
-                    tokens = torch.stack([x.to(args.device) for x in tokens], dim=0)
+                # batching
+                sampled += len(labels)
+                targets = labels.type(torch.LongTensor).to(args.device)
+                tokens = torch.stack([x.to(args.device) for x in tokens], dim=0)
 
-                    # encoder forward
-                    encoder_out = encoder(tokens)
+                # encoder forward
+                encoder_out = encoder(tokens)
 
-                    # classifier forward
-                    reps = classifier(encoder_out["x_encoded"])
+                # classifier forward
+                reps = classifier(encoder_out["x_encoded"])
 
-                    # prediction
-                    probs = F.softmax(reps, dim=1)
-                    _, pred = probs.max(1)
-                    total_hits += (pred == targets).float().sum().data.cpu().numpy().item()
+                # prediction
+                probs = F.softmax(reps, dim=1)
+                _, pred = probs.max(1)
+                total_hits += (pred == targets).float().sum().data.cpu().numpy().item()
 
-                    # loss components
-                    CE_loss = F.cross_entropy(input=reps, target=targets, reduction="mean")
-                    loss = CE_loss
+                # loss components
+                CE_loss = F.cross_entropy(input=reps, target=targets, reduction="mean")
+                loss = CE_loss
+                
+                # quangnm
+                if args.num_descriptions > 0:
+                    description_out = {}
+                    for rel, descriptions in seen_descriptions.items():
+                        des_tokens = torch.tensor([descriptions[0]['token_ids']]).to(args.device)
+                        description_out[self.rel2id[rel]] = encoder(des_tokens, extract_type="cls")["cls_representation"]
+                    CT_loss = contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs)
+                    loss += beta * CT_loss
                     
-                    # quangnm
-                    if args.num_descriptions > 0:
-                        description_out = {}
-                        for rel, descriptions in seen_descriptions.items():
-                            des_tokens = torch.tensor([descriptions[0]['token_ids']]).to(args.device)
-                            description_out[self.rel2id[rel]] = encoder(des_tokens, extract_type="cls")["cls_representation"]
-                        CT_loss = contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs)
-                        loss += beta * CT_loss
-                        
-                    losses.append(loss.item())
-                    loss.backward()
+                losses.append(loss.item())
+                loss.backward()
 
-                    # params update
-                    torch.nn.utils.clip_grad_norm_(modules_parameters, args.max_grad_norm)
-                    optimizer.step()
+                # params update
+                torch.nn.utils.clip_grad_norm_(modules_parameters, args.max_grad_norm)
+                optimizer.step()
 
-                    # display
-                    td.set_postfix(loss=np.array(losses).mean(), acc=total_hits / sampled)
-                    
-                    # log to wandb
-                    wandb.log({
-                        "encoder_loss": loss.item(),
-                        "encoder_ce_loss": CE_loss.item()
-                    })
-                except:
-                    continue
+                # display
+                td.set_postfix(loss=np.array(losses).mean(), acc=total_hits / sampled)
+                
+                # log to wandb
+                wandb.log({
+                    "encoder_loss": loss.item(),
+                    "encoder_ce_loss": CE_loss.item(),
+                    "encoder_ct_loss": CT_loss.item()
+                })
 
         for e_id in range(args.encoder_epochs):
             train_data(data_loader, f"train_encoder_epoch_{e_id + 1}", e_id)
 
-    def train_prompt_pool(self, args, encoder, prompt_pool, training_data, task_id, beta=0.1):
+    def train_prompt_pool(self, args, encoder, prompt_pool, training_data, task_id, beta=0.1, seen_descriptions=None):
         encoder.eval()
         classifier = Classifier(args=args).to(args.device)
         classifier.train()
@@ -246,6 +246,16 @@ class Manager(object):
                 prompt_reduce_sim_loss = -args.pull_constraint_coeff * encoder_out["reduce_sim"]
                 CE_loss = F.cross_entropy(input=reps, target=targets, reduction="mean")
                 loss = CE_loss + prompt_reduce_sim_loss
+                
+                # quangnm
+                if args.num_descriptions > 0:
+                    description_out = {}
+                    for rel, descriptions in seen_descriptions.items():
+                        des_tokens = torch.tensor([descriptions[0]['token_ids']]).to(args.device)
+                        description_out[self.rel2id[rel]] = encoder(des_tokens, extract_type="cls")["cls_representation"]
+                    CT_loss = contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs)
+                    loss += beta * CT_loss
+                    
                 losses.append(loss.item())
                 loss.backward()
 
@@ -260,7 +270,8 @@ class Manager(object):
                 wandb.log({
                     "prompt_pool_loss": loss.item(),
                     "prompt_pool_ce_loss": CE_loss.item(), 
-                    "prompt_pool_reduce_sim_loss": prompt_reduce_sim_loss.item()
+                    "prompt_pool_reduce_sim_loss": prompt_reduce_sim_loss.item(),
+                    "prompt_pool_ct_loss": CT_loss.item()
                 })
 
         for e_id in range(args.prompt_pool_epochs):
@@ -627,6 +638,25 @@ class Manager(object):
         all_train_tasks = []
         all_tasks = []
         seen_data = {}
+        
+        # quangnm
+        # logging
+        result_dir = f"./results"
+        if not os.path.exists(result_dir):
+            os.makedirs(result_dir)
+        
+        time_str = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+        log_file = f"{result_dir}/{args.run_name}_{time_str}.txt"
+        # Kiểm tra xem file đã tồn tại chưa, nếu tồn tại rồi thì thêm vào cuối tên file một số
+        while os.path.exists(log_file):
+            time.sleep(1)
+            time_str = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+            log_file = f"{result_dir}/{args.run_name}_{time_str}.txt"
+            
+        with open(log_file, "a") as f:
+            f.write(f"hyper-parameter configurations:\n")
+            f.write(yaml.dump(args.__dict__, sort_keys=True, indent=4))
+        
 
         for steps, (training_data, valid_data, test_data, current_relations, 
                     historic_test_data, seen_relations, seen_descriptions) in enumerate(sampler):
@@ -727,6 +757,10 @@ class Manager(object):
                 # train
                 self.train_classifier(args, classifier, swag_classifier, self.replayed_key, "train_classifier_epoch_")
                 self.train_classifier(args, prompted_classifier, swag_prompted_classifier, self.replayed_data, "train_prompted_classifier_epoch_")
+                
+                # quangnm
+                log_text = []
+                log_text.append(f"task {steps}")
 
                 # prediction
                 print("===NON-SWAG===")
@@ -762,27 +796,20 @@ class Manager(object):
                 acc_sum =[]
                 print("===UNTIL-NOW===")
                 print("accuracies:")
+                log_text.append("===UNTIL-NOW===")
+                log_text.append("accuracies:")
                 for x in test_cur:
                     print(x)
+                    log_text.append(x)
                 print("arverages:")
+                log_text.append("arverages:")
                 for x in test_total:
                     print(x)
+                    log_text.append(x)
                     acc_sum.append(x)
-                    
-                results.append({
-                    "task": steps,
-                    "results": list(acc_sum),
-                })
                 
-                # Tạo thư mục lưu kết quả dựa trên seed và các tham số quan trọng
-                result_dir = f"./results/{args.dataname}_seed{args.seed}_encLR{args.encoder_lr}_clsLR{args.classifier_lr}_promptLen{args.prompt_length}_pull{args.pull_constraint_coeff}_contrast{args.contrastive_loss_coeff}"
-                if not os.path.exists(result_dir):
-                    os.makedirs(result_dir)
-
-                # Lưu kết quả với tên file chứa thông tin về bước hiện tại
-                result_file = f"{result_dir}/task_{steps}.pickle"
-                with open(result_file, "wb") as file:
-                    pickle.dump(results, file)
+                with open(log_file, "a") as f:
+                    f.write("\n".join([str(x) for x in log_text]) + "\n")
 
 
         del self.memorized_samples, 

@@ -34,12 +34,13 @@ if __name__ == "__main__":
 
     # start a new wandb run to track this script
     if args.run_name is None:
-        args.run_name = f"{args.dataname}_{args.contrastive_loss_coeff}"
+        # --run_name $dataname-$seed-$encoder_epochs-$prompt_pool_epochs-$classifier_epochs-$prompt_pool_size-$prompt_length-$prompt_top_k-$num_descriptions-$beta
+        args.run_name = f"{args.dataname}-{args.seed}-{args.encoder_epochs}-{args.prompt_pool_epochs}-{args.classifier_epochs}-{args.prompt_pool_size}-{args.prompt_length}-{args.prompt_top_k}-{args.num_descriptions}-{args.beta}"
         
     wandb.init(
         # set the wandb project where this run will be logged
         project="wave",
-        name = args.run_name,
+        name = f"{args.dataname}-{args.seed}",
 
         # track hyperparameters and run metadata
         config=args.__dict__,
