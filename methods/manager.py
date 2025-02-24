@@ -243,6 +243,7 @@ class Manager(object):
                 total_hits += (pred == targets).float().sum().data.cpu().numpy().item()
 
                 # loss components
+                prompt_reduce_sim_loss = -args.pull_constraint_coeff * encoder_out["reduce_sim"]
                 CE_loss = F.cross_entropy(input=reps, target=targets, reduction="mean")
                 loss = CE_loss + prompt_reduce_sim_loss
                 losses.append(loss.item())
