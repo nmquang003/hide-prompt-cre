@@ -115,37 +115,46 @@ class BertRelationEncoder(nn.Module):
 
     def forward(self, input_ids, prompt_pool=None, x_key=None, prompt_pools=None, extract_type="relation"):
         out = dict()
+
+        # Xác định chiều dài bổ sung từ prompt
+        additional_length = 0
+        if prompt_pool is not None:
+            additional_length = prompt_pool.length
+        elif prompt_pools is not None:
+            additional_length = prompt_pools[0].length
+            
         if extract_type == "relation":
-            e11 = (input_ids == 30522).nonzero()
-            e21 = (input_ids == 30524).nonzero()
+            # Lấy vị trí các token đặc biệt (e11 và e21)
+            e11 = (input_ids == 30522).nonzero(as_tuple=False)
+            e21 = (input_ids == 30524).nonzero(as_tuple=False)
 
+            # Encode input
             out = self.encoder(input_ids, prompt_pool, x_key, prompt_pools)
-            output = []
-            for i in range(e11.shape[0]):
-                if prompt_pool is not None:
-                    # if self.config.prompt_type == "coda_prompt":
-                    additional_length = prompt_pool.length
-                    # else:
-                    # additional_length = prompt_pool.total_prompt_length
-                elif prompt_pools is not None:
-                    # if self.config.prompt_type == "coda_prompt":
-                    additional_length = prompt_pools[0].length
-                    # else:
-                    # additional_length = prompt_pools[0].total_prompt_length
-                else:
-                    additional_length = 0
 
-                instance_output = torch.index_select(out["attention_out"], 0, torch.tensor(i).cuda())
-                instance_output = torch.index_select(instance_output, 1, torch.tensor([e11[i][1], e21[i][1]]).cuda() + additional_length)
-                output.append(instance_output)
-            output = torch.cat(output, dim=0)
-            output = output.view(output.shape[0], -1)
+            # Tính toán chỉ số cần lấy theo batch
+            batch_indices = e11[:, 0]  # Batch index
+            positions = torch.stack([e11[:, 1], e21[:, 1]], dim=1) + additional_length  # Token positions sau khi cộng thêm prompt length
+
+            # Sử dụng gather để lấy các token cần thiết
+            attention_out = out["attention_out"]  # Shape: (batch_size, seq_len, hidden_dim)
+            batch_size, seq_len, hidden_dim = attention_out.shape
+            
+            # Chọn các vector tương ứng với entity positions
+            positions = positions.unsqueeze(-1).expand(-1, -1, hidden_dim)  # Shape: (batch_size, 2, hidden_dim)
+            gathered = torch.gather(attention_out[batch_indices], 1, positions)  # Shape: (batch_size, 2, hidden_dim)
+
+            # Reshape output 
+            output = gathered.view(gathered.shape[0], -1)  # Flatten to (batch_size, 2 * hidden_dim)
             out["x_encoded"] = output
-        
+
         elif extract_type == "cls":
             out = self.encoder(input_ids, prompt_pool, x_key, prompt_pools)
-            cls_token_representation = out["attention_out"][:, 0, :]
-            cls_token_representation = torch.cat([cls_token_representation, cls_token_representation], dim=-1)  # Nhân đôi độ dài
+            
+            cls_token_representation = out["attention_out"][:, additional_length, :]  # Lấy CLS token
+            cls_token_representation = torch.cat(
+                [cls_token_representation, cls_token_representation], dim=-1
+            )  # Nhân đôi độ dài
             out["cls_representation"] = cls_token_representation
 
         return out
+

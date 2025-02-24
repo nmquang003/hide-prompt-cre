@@ -618,7 +618,7 @@ class Manager(object):
         seen_data = {}
 
         for steps, (training_data, valid_data, test_data, current_relations, 
-                    historic_test_data, seen_relations) in enumerate(sampler):
+                    historic_test_data, seen_relations, seen_descriptions) in enumerate(sampler):
             
             # NgoDinhLuyen EoE
             self.num_tasks += 1
