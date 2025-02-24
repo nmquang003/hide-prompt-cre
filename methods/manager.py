@@ -400,7 +400,6 @@ class Manager(object):
                 total_hits += (pred == targets).float().sum().data.cpu().numpy().item()
 
                 # loss components
-                prompt_reduce_sim_loss = -args.pull_constraint_coeff * encoder_out["reduce_sim"]
                 CE_loss = F.cross_entropy(input=reps, target=targets, reduction="mean")
                 
                 if args.type_ctloss == "new":
@@ -412,7 +411,7 @@ class Manager(object):
                     CT_loss =  contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs) # constractive loss
                 # Old
                 
-                loss = CE_loss + prompt_reduce_sim_loss + CT_loss*self.beta
+                loss = CE_loss + CT_loss*self.beta
                 losses.append(loss.item())
                 loss.backward()
                 
@@ -420,8 +419,7 @@ class Manager(object):
                 wandb.log({
                     "prompt_pool_loss": loss.item(),
                     "prompt_pool_ce_loss": CE_loss.item(), 
-                    "prompt_pool_ct_loss": CT_loss.item(),
-                    "prompt_pool_reduce_sim_loss": prompt_reduce_sim_loss.item()
+                    "prompt_pool_ct_loss": CT_loss.item()
                 })
 
                 # params update
