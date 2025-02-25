@@ -24,10 +24,10 @@ def contrastive_loss(reps, targets, descriptions, num_negs=4, temperature=5):
     device = reps.device
 
     # Tạo batch descriptions tương ứng với từng mẫu trong reps
-    desc_list = torch.stack([descriptions[int(label)][0][0] for label in targets]).to(device)  # (N, D)
+    desc_list = torch.stack([descriptions[int(label)][0] for label in targets]).to(device)  # (N, D)
     
     # Tạo batch tất cả descriptions
-    all_descriptions = torch.stack([des[0][0] for des in descriptions.values()]).to(device)  # (M, D)
+    all_descriptions = torch.stack([des[0] for des in descriptions.values()]).to(device)  # (M, D)
     
     # Tính cosine similarity một lần duy nhất
     similarities = sim(reps, all_descriptions) / temperature  # (N, M)
