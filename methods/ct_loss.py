@@ -23,11 +23,11 @@ def contrastive_loss(reps, targets, descriptions, num_negs=4, temperature=5):
     """
     device = reps.device
 
-    # Tạo batch descriptions cho các nhãn tương ứng
-    desc_list = torch.stack([descriptions[int(label)][0] for label in targets], device=device)  # (N, D)
+    # Tạo batch descriptions tương ứng với từng mẫu trong reps
+    desc_list = torch.stack([descriptions[int(label)][0][0] for label in targets]).to(device)  # (N, D)
     
     # Tạo batch tất cả descriptions
-    all_descriptions = torch.stack([des[0] for des in descriptions.values()], device=device)  # (M, D)
+    all_descriptions = torch.stack([des[0][0] for des in descriptions.values()]).to(device)  # (M, D)
     
     # Tính cosine similarity một lần duy nhất
     similarities = sim(reps, all_descriptions) / temperature  # (N, M)
@@ -37,7 +37,7 @@ def contrastive_loss(reps, targets, descriptions, num_negs=4, temperature=5):
     
     # Lấy top-k mô tả gần nhất (negative similarities)
     num_negs = min(num_negs, similarities.size(1) - 1)
-    mask = torch.arange(similarities.size(1), device=device).unsqueeze(0) != targets.unsqueeze(1)
+    mask = torch.arange(similarities.size(1)).to(device).unsqueeze(0) != targets.unsqueeze(1)
     filtered_similarities = similarities.masked_select(mask).view(similarities.size(0), -1)
     neg_sims, _ = filtered_similarities.topk(num_negs, dim=1)  # (N, num_negs)
     
