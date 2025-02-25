@@ -646,6 +646,15 @@ class Manager(object):
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
         
+        all_results_file = f"{result_dir}/all_results.csv"
+        if not os.path.exists(all_results_file):
+            with open(all_results_file, "a") as f:
+                # make header: dataname,seed,encoder_epochs,prompt_pool_epochs,classifier_epochs,prompt_pool_size,prompt_length,prompt_top_k,num_descriptions,beta,hit1-10,til1-10,acc1-10
+                f.write("dataname,seed,encoder_epochs,prompt_pool_epochs,classifier_epochs,prompt_pool_size,prompt_length,prompt_top_k,num_descriptions,beta,")
+                f.write("hit1,hit2,hit3,hit4,hit5,hit6,hit7,hit8,hit9,hit10,")
+                f.write("til1,til2,til3,til4,til5,til6,til7,til8,til9,til10,")
+                f.write("acc1,acc2,acc3,acc4,acc5,acc6,acc7,acc8,acc9,acc10\n")
+        
         time_str = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
         log_file = f"{result_dir}/{args.run_name}_{time_str}.txt"
         # Kiểm tra xem file đã tồn tại chưa, nếu tồn tại rồi thì thêm vào cuối tên file một số
@@ -701,7 +710,7 @@ class Manager(object):
                                    encoder, 
                                    cur_training_data, 
                                    task_id=steps, 
-                                   beta=args.contrastive_loss_coeff,
+                                   beta=args.beta,
                                    seen_descriptions=seen_descriptions)
 
             # new prompt pool
@@ -709,7 +718,7 @@ class Manager(object):
             self.train_prompt_pool(args, encoder, self.prompt_pools[-1], 
                                    cur_training_data,
                                    task_id=steps, 
-                                   beta=args.contrastive_loss_coeff,
+                                   beta=args.beta,
                                    seen_descriptions=seen_descriptions)
 
             # NgoDinhLuyen EoE
@@ -812,6 +821,12 @@ class Manager(object):
                 with open(log_file, "a") as f:
                     f.write("\n".join([str(x) for x in log_text]) + "\n")
 
+        # log to all_results.csv
+        with open(all_results_file, "a") as f:
+            f.write(f"{args.dataname},{args.seed},{args.encoder_epochs},{args.prompt_pool_epochs},{args.classifier_epochs},{args.prompt_pool_size},{args.prompt_length},{args.prompt_top_k},{args.num_descriptions},{args.beta},")
+            f.write(",".join([str(x[1]) for x in test_total]) + ",")
+            f.write(",".join([str(x[3]) for x in test_total]) + ",")
+            f.write(",".join([str(x[2]) for x in test_total]) + "\n")
 
         del self.memorized_samples, 
         self.prompt_pools, all_train_tasks, 
