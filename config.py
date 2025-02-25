@@ -17,6 +17,7 @@ class Param:
         parser.add_argument("--beta", default=0.1, type=float)
         parser.add_argument("--num_descriptions", default=1, type=int)
         parser.add_argument("--num_negs", default=4, type=int)
+        parser.add_argument("--use_prompt_in_des", default=False, type=bool)
         
         # common parameters
         parser.add_argument("--gpu", default=0, type=int)

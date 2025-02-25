@@ -38,9 +38,13 @@ class Prompt(nn.Module):
 
     def forward(self, x_embed, x_key=None):
         out = dict()
-        
+        # Nếu x_key là None thì khởi tạo bằng zeros
+        if x_key is None:
+            x_key_norm = torch.zeros(x_embed.shape[0], self.embed_dim * 2).to(x_embed.device)
+        else:
+            x_key_norm = nn.functional.normalize(x_key, dim=1)
+            
         prompt_key_norm = nn.functional.normalize(self.prompt_key, dim=1)
-        x_key_norm = nn.functional.normalize(x_key, dim=1)
 
         similarity = torch.matmul(x_key_norm, prompt_key_norm.t())
         softmax_sim = F.softmax(similarity, dim=1)
