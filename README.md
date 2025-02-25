@@ -33,6 +33,11 @@ python run.py \
     --use_prompt_in_des True 
 ```
 
+### Run many setting on multi device
+
+```bash
+bash run.sh
+```
 
 Có 5 seed: 2021, 2121, 2221, 2321, 2421
 Dataname: TACRED, FewRel
