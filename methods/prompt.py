@@ -43,7 +43,6 @@ class Prompt(nn.Module):
             reshaped_prompt = self.prompt.view(self.pool_size, -1)
             # Nếu không có x_key thì cộng trung bình các prompt
             mean_prompt = torch.mean(reshaped_prompt, dim=0)
-            mean_prompt = mean_prompt.unsqueeze(0).expand(x_embed.shape[0], -1)
             out["prompted_embedding"] = torch.cat([mean_prompt, x_embed], dim=1)
         else:
             x_key_norm = nn.functional.normalize(x_key, dim=1)
