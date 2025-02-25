@@ -40,7 +40,11 @@ class Prompt(nn.Module):
         out = dict()
         # Nếu x_key là None thì cộng trung bình các prompt 
         if x_key is None:
-            mean_result = torch.mean(self.prompt, dim=1)
+            reshaped_prompt = self.prompt.view(self.pool_size, -1)
+            # Nếu không có x_key thì cộng trung bình các prompt
+            mean_prompt = torch.mean(reshaped_prompt, dim=0)
+            mean_prompt = mean_prompt.unsqueeze(0).expand(x_embed.shape[0], -1)
+            out["prompted_embedding"] = torch.cat([mean_prompt, x_embed], dim=1)
         else:
             x_key_norm = nn.functional.normalize(x_key, dim=1)
             
@@ -58,7 +62,8 @@ class Prompt(nn.Module):
         
             x_key_norm = x_key_norm.unsqueeze(1)
             out["reduce_sim"] = torch.sum(prompt_key_norm[_id] * x_key_norm) / x_embed.shape[0]
-        mean_result_reshaped = mean_result.view(x_embed.shape[0], self.length, self.embed_dim)
-        out["prompted_embedding"] = torch.cat([mean_result_reshaped, x_embed], dim=1)
+            
+            mean_result_reshaped = mean_result.view(x_embed.shape[0], self.length, self.embed_dim)
+            out["prompted_embedding"] = torch.cat([mean_result_reshaped, x_embed], dim=1)
     
         return out
