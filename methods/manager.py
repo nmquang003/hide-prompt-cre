@@ -157,7 +157,7 @@ class Manager(object):
                     for rel, descriptions in seen_descriptions.items():
                         des_tokens = torch.tensor([descriptions[0]['token_ids']]).to(args.device)
                         description_out[self.rel2id[rel]] = encoder(des_tokens, extract_type="cls")["cls_representation"]
-                    if args.use_triplet_loss:
+                    if args.use_triplet_loss == 1:
                         CT_loss = triplet_contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs)
                     else:
                         CT_loss = contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs)
@@ -253,11 +253,11 @@ class Manager(object):
                     description_out = {}
                     for rel, descriptions in seen_descriptions.items():
                         des_tokens = torch.tensor([descriptions[0]['token_ids']]).to(args.device)
-                        if args.use_prompt_in_des:
+                        if args.use_prompt_in_des == 1:
                             description_out[self.rel2id[rel]] = encoder(des_tokens, prompt_pool, extract_type="cls")["cls_representation"]
                         else:
                             description_out[self.rel2id[rel]] = encoder(des_tokens, extract_type="cls")["cls_representation"]
-                    if args.use_triplet_loss:
+                    if args.use_triplet_loss == 1:
                         CT_loss = triplet_contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs)
                     else:
                         CT_loss = contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs)
@@ -833,9 +833,10 @@ class Manager(object):
         # log to all_results.csv
         with open(all_results_file, "a") as f:
             f.write(f"{args.dataname},{args.seed},{args.encoder_epochs},{args.prompt_pool_epochs},{args.classifier_epochs},{args.prompt_pool_size},{args.prompt_length},{args.prompt_top_k},{args.num_descriptions},{args.beta},")
-            f.write(",".join([str(x[1]) for x in test_total]) + ",")
-            f.write(",".join([str(x[3]) for x in test_total]) + ",")
-            f.write(",".join([str(x[2]) for x in test_total]) + "\n")
+            # chỉ lấy vị trí index lẻ trong test_total
+            f.write(",".join([str(x[1]) for x in test_total][1::2]) + ",")
+            f.write(",".join([str(x[3]) for x in test_total][1::2]) + ",")
+            f.write(",".join([str(x[2]) for x in test_total][1::2]) + "\n")
 
         del self.memorized_samples, 
         self.prompt_pools, all_train_tasks, 
