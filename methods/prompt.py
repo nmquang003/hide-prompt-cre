@@ -38,26 +38,26 @@ class Prompt(nn.Module):
 
     def forward(self, x_embed, x_key=None):
         out = dict()
-        # Nếu x_key là None thì khởi tạo bằng zeros
+        # Nếu x_key là None thì cộng trung bình các prompt 
         if x_key is None:
-            x_key_norm = torch.zeros(x_embed.shape[0], self.embed_dim * 2).to(x_embed.device)
+            mean_result = torch.mean(self.prompt, dim=1)
         else:
             x_key_norm = nn.functional.normalize(x_key, dim=1)
             
-        prompt_key_norm = nn.functional.normalize(self.prompt_key, dim=1)
+            prompt_key_norm = nn.functional.normalize(self.prompt_key, dim=1)
 
-        similarity = torch.matmul(x_key_norm, prompt_key_norm.t())
-        softmax_sim = F.softmax(similarity, dim=1)
-        _, _id = torch.topk(similarity, k=self.top_k, dim=1)
-        
-        reshaped_prompt = self.prompt.view(self.pool_size, -1)
-        softmax_sim = softmax_sim.unsqueeze(2).expand(x_embed.shape[0], self.pool_size, reshaped_prompt.shape[-1]) 
+            similarity = torch.matmul(x_key_norm, prompt_key_norm.t())
+            softmax_sim = F.softmax(similarity, dim=1)
+            _, _id = torch.topk(similarity, k=self.top_k, dim=1)
+            
+            reshaped_prompt = self.prompt.view(self.pool_size, -1)
+            softmax_sim = softmax_sim.unsqueeze(2).expand(x_embed.shape[0], self.pool_size, reshaped_prompt.shape[-1]) 
 
-        result = softmax_sim * reshaped_prompt.unsqueeze(0) 
-        mean_result = torch.mean(result, dim=1)
+            result = softmax_sim * reshaped_prompt.unsqueeze(0) 
+            mean_result = torch.mean(result, dim=1)
         
-        x_key_norm = x_key_norm.unsqueeze(1)
-        out["reduce_sim"] = torch.sum(prompt_key_norm[_id] * x_key_norm) / x_embed.shape[0]
+            x_key_norm = x_key_norm.unsqueeze(1)
+            out["reduce_sim"] = torch.sum(prompt_key_norm[_id] * x_key_norm) / x_embed.shape[0]
         mean_result_reshaped = mean_result.view(x_embed.shape[0], self.length, self.embed_dim)
         out["prompted_embedding"] = torch.cat([mean_result_reshaped, x_embed], dim=1)
     
