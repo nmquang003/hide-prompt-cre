@@ -24,10 +24,10 @@ def contrastive_loss(reps, targets, descriptions, num_negs = 4, temperature=5):
     device = reps.device
     
     # Tạo batch descriptions tương ứng với từng mẫu trong reps
-    desc_list = torch.stack([descriptions[int(label)][0] for label in targets], device=device)  # (N, D)
+    desc_list = torch.stack([descriptions[int(label)][0] for label in targets]).to(device)  # (N, D)
     
     # Tạo batch tất cả descriptions
-    all_descriptions = torch.stack([des[0] for des in descriptions.values()], device=device)  # (M, D)
+    all_descriptions = torch.stack([des[0] for des in descriptions.values()]).to(device)  # (M, D)
     
     # Tính cosine similarity giữa reps và descriptions
     similarities = sim(reps, all_descriptions) / temperature  # (N, M)
@@ -64,10 +64,10 @@ def triplet_contrastive_loss(reps, targets, descriptions, num_negs=4, margin=0.2
     device = reps.device
 
     # Tạo batch descriptions tương ứng
-    desc_list = torch.stack([descriptions[int(label)][0] for label in targets], device=device)  # (N, D)
+    desc_list = torch.stack([descriptions[int(label)][0] for label in targets]).to(device)  # (N, D)
 
     # Tạo batch tất cả descriptions
-    all_descriptions = torch.stack([des[0] for des in descriptions.values()], device=device)  # (M, D)
+    all_descriptions = torch.stack([des[0] for des in descriptions.values()]).to(device)  # (M, D)
 
     # Tính toàn bộ ma trận cosine similarity
     similarities = sim(reps, all_descriptions) / temperature  # (N, M)
@@ -77,7 +77,7 @@ def triplet_contrastive_loss(reps, targets, descriptions, num_negs=4, margin=0.2
 
     # Lấy top-k negative mô tả gần nhất (khác nhãn)
     num_negs = min(num_negs, similarities.size(1) - 1)
-    mask = torch.arange(similarities.size(1), device=device).unsqueeze(0) != targets.unsqueeze(1)
+    mask = torch.arange(similarities.size(1)).to(device).unsqueeze(0) != targets.unsqueeze(1)
     filtered_similarities = similarities.masked_select(mask).view(similarities.size(0), -1)
     neg_sims, _ = filtered_similarities.topk(num_negs, dim=1)  # (N, num_negs)
 
