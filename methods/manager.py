@@ -157,7 +157,10 @@ class Manager(object):
                     for rel, descriptions in seen_descriptions.items():
                         des_tokens = torch.tensor([descriptions[0]['token_ids']]).to(args.device)
                         description_out[self.rel2id[rel]] = encoder(des_tokens, extract_type="cls")["cls_representation"]
-                    CT_loss = triplet_contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs)
+                    if args.use_triplet_loss:
+                        CT_loss = triplet_contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs)
+                    else:
+                        CT_loss = contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs)
                     loss = CE_loss + beta * CT_loss
                 else:
                     loss = CE_loss
@@ -255,7 +258,10 @@ class Manager(object):
                             description_out[self.rel2id[rel]] = encoder(des_tokens, prompt_pool, extract_type="cls")["cls_representation"]
                         else:
                             description_out[self.rel2id[rel]] = encoder(des_tokens, extract_type="cls")["cls_representation"]
-                    CT_loss = triplet_contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs)
+                    if args.use_triplet_loss:
+                        CT_loss = triplet_contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs)
+                    else:
+                        CT_loss = contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs)
                     loss = CE_loss + beta * CT_loss
                 else:
                     loss = CE_loss
