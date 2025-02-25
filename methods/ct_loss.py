@@ -77,13 +77,16 @@ def triplet_contrastive_loss(reps, targets, descriptions, num_negs=4, margin=0.2
 
     # Lấy top-k negative mô tả gần nhất (khác nhãn)
     num_negs = min(num_negs, similarities.size(1) - 1)
-    mask = torch.arange(similarities.size(1)).to(device).unsqueeze(0) != targets.unsqueeze(1)
-    filtered_similarities = similarities.masked_select(mask).view(similarities.size(0), -1)
-    neg_sims, _ = filtered_similarities.topk(num_negs, dim=1)  # (N, num_negs)
+    mask = torch.eq(targets.unsqueeze(1), torch.arange(similarities.size(1)).to(device))  # (N, M)
+    similarities = similarities.masked_fill(mask, float('-inf'))  # Loại bỏ mô tả cùng nhãn
+
+    # Chọn top-k negatives
+    neg_sims, _ = similarities.topk(num_negs, dim=1)  # (N, num_negs)
 
     # Tính Triplet Loss
     triplet_loss = F.relu(neg_sims - pos_sim.unsqueeze(1) + margin)  # (N, num_negs)
     loss = triplet_loss.mean()
 
     return loss
+
 
