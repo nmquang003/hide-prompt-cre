@@ -109,9 +109,6 @@ class Manager(object):
             if e_id % args.sample_freq == 0 or e_id == args.classifier_epochs - 1:
                 swag_classifier.sample(0.0)
                 bn_update(data_loader, swag_classifier)
-
-    # NgoDinhLuyen Add Function calculate negative period
-    @torch.no_grad()
      
     def train_encoder(self, args, encoder, training_data, task_id, beta=0.1, seen_descriptions=None):
         encoder.train()
@@ -153,8 +150,7 @@ class Manager(object):
 
                 # loss components
                 CE_loss = F.cross_entropy(input=reps, target=targets, reduction="mean")
-                loss = CE_loss
-                
+
                 # quangnm
                 if args.num_descriptions > 0:
                     description_out = {}
@@ -162,7 +158,10 @@ class Manager(object):
                         des_tokens = torch.tensor([descriptions[0]['token_ids']]).to(args.device)
                         description_out[self.rel2id[rel]] = encoder(des_tokens, extract_type="cls")["cls_representation"]
                     CT_loss = contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs)
-                    loss += beta * CT_loss
+                    loss = CE_loss + beta * CT_loss
+                else:
+                    loss = CE_loss
+                    CT_loss = torch.tensor(0.0)
                     
                 losses.append(loss.item())
                 loss.backward()
@@ -245,7 +244,6 @@ class Manager(object):
                 # loss components
                 prompt_reduce_sim_loss = -args.pull_constraint_coeff * encoder_out["reduce_sim"]
                 CE_loss = F.cross_entropy(input=reps, target=targets, reduction="mean")
-                loss = CE_loss + prompt_reduce_sim_loss
                 
                 # quangnm
                 if args.num_descriptions > 0:
@@ -254,7 +252,10 @@ class Manager(object):
                         des_tokens = torch.tensor([descriptions[0]['token_ids']]).to(args.device)
                         description_out[self.rel2id[rel]] = encoder(des_tokens, extract_type="cls")["cls_representation"]
                     CT_loss = contrastive_loss(encoder_out["x_encoded"], targets, description_out, num_negs=args.num_negs)
-                    loss += beta * CT_loss
+                    loss = CE_loss + beta * CT_loss
+                else:
+                    loss = CE_loss
+                    CT_loss = torch.tensor(0.0)
                     
                 losses.append(loss.item())
                 loss.backward()
