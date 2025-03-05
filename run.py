@@ -6,8 +6,10 @@ from methods.manager import Manager
 import wandb
 from dotenv import load_dotenv
 import os
-# os.environ['WANDB_MODE'] = 'disabled' # disable wandb for this script
+os.environ['WANDB_MODE'] = 'disabled' # disable wandb for this script
 
+import logging
+import sys
 
 
 def run(args):
@@ -40,6 +42,16 @@ if __name__ == "__main__":
     if args.run_name is None:
         args.run_name = f"{args.dataname}_{args.seed}_{args.num_descriptions}_{args.prompt_pool_size}_{args.prompt_length}_{args.prompt_top_k}"
         
+    # Cấu hình logging
+    logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+            logging.FileHandler(f"{args.run_name}_log.txt", mode="w"),  # Ghi vào file
+            logging.StreamHandler(sys.stdout)  # Hiển thị trên terminal
+        ]
+    )
+    
     wandb.init(
         # set the wandb project where this run will be logged
         project="Final_wave",

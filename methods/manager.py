@@ -23,6 +23,10 @@ from tqdm import tqdm, trange
 import pickle
 import wandb
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 class Manager(object):
     def __init__(self, args):
         super().__init__()
