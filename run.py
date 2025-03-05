@@ -10,7 +10,25 @@ os.environ['WANDB_MODE'] = 'disabled' # disable wandb for this script
 
 import logging
 import sys
+import re
+from datetime import datetime
 
+# Lớp ghi log để ghi cả print() vào file
+class Logger(object):
+    def __init__(self, filename):
+        self.terminal = sys.stdout
+        self.log = open(filename, "w")
+        self.tqdm_pattern = re.compile(r'\r.*')  # Loại bỏ các dòng tqdm
+
+    def write(self, message):
+        if not self.tqdm_pattern.match(message):  # Bỏ qua tqdm
+            self.terminal.write(message)
+            self.log.write(message)
+            self.log.flush()
+
+    def flush(self):
+        self.terminal.flush()
+        self.log.flush()
 
 def run(args):
     print(f"hyper-parameter configurations:")
@@ -39,18 +57,29 @@ if __name__ == "__main__":
     wandb.login()
 
     # start a new wandb run to track this script
+
     if args.run_name is None:
-        args.run_name = f"{args.dataname}_{args.seed}_{args.num_descriptions}_{args.prompt_pool_size}_{args.prompt_length}_{args.prompt_top_k}"
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Thêm timestamp
+        args.run_name = f"{args.dataname}_{args.seed}_{args.num_descriptions}_{args.prompt_pool_size}_{args.prompt_length}_{args.prompt_top_k}_{timestamp}"
+
         
     # Cấu hình logging
+    log_dir = "log_result"
+    os.makedirs(log_dir, exist_ok=True)  # Tạo thư mục nếu chưa tồn tại
+    log_filename = os.path.join(log_dir, f"{args.run_name}_log.txt")
+
     logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-            logging.FileHandler(f"{args.run_name}_log.txt", mode="w"),  # Ghi vào file
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.FileHandler(log_filename, mode="w"),  # Ghi vào file
             logging.StreamHandler(sys.stdout)  # Hiển thị trên terminal
         ]
     )
+    
+    # Ghi cả print() vào file log
+    sys.stdout = Logger(log_filename)
+    sys.stderr = sys.stdout  # Để ghi cả lỗi vào file
     
     wandb.init(
         # set the wandb project where this run will be logged
