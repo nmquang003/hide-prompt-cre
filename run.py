@@ -38,7 +38,7 @@ if __name__ == "__main__":
 
     # start a new wandb run to track this script
     if args.run_name is None:
-        args.run_name = f"{args.dataname}_{args.seed}_{args.prompt_pool_size}_{args.prompt_length}_{args.prompt_top_k}"
+        args.run_name = f"{args.dataname}_{args.seed}_{args.num_descriptions}_{args.prompt_pool_size}_{args.prompt_length}_{args.prompt_top_k}"
         
     wandb.init(
         # set the wandb project where this run will be logged
