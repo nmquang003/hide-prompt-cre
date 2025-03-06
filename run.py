@@ -17,7 +17,7 @@ class Logger(object):
     def __init__(self, filename):
         self.terminal = sys.stdout
         self.log = open(filename, "w")
-        # self.tqdm_pattern = re.compile(r'\r.*')  # Loại bỏ các dòng tqdm
+        self.tqdm_pattern = re.compile(r'\r.*')  # Loại bỏ các dòng tqdm
 
     def write(self, message):
         if not self.tqdm_pattern.match(message):  # Bỏ qua tqdm
