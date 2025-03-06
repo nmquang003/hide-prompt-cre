@@ -59,7 +59,7 @@ if __name__ == "__main__":
 
     if args.run_name is None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Thêm timestamp
-        args.run_name = f"{args.dataname}_{args.seed}_{args.num_descriptions}_{args.prompt_pool_size}_{args.prompt_length}_{args.prompt_top_k}_{timestamp}"
+        args.run_name = f"{args.dataname}_{args.seed}_{args.prompt_pool_size}_{args.prompt_length}_{args.prompt_top_k}_{timestamp}"
 
         
     # Cấu hình logging
