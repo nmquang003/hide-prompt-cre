@@ -774,19 +774,32 @@ class Manager(object):
                 sampled -= len(labels)
                 continue
             
+        all_targets_np = np.array(all_targets)  # Ground truth labels
         all_preds_np = np.array(all_preds)
-        num_classes  = int(all_preds_np.max() + 1)  # hoặc bạn có thể set cứng nếu biết trước
         
-        # Đếm số lần mỗi class được dự đoán
-        pred_counts = np.bincount(all_preds_np, minlength=num_classes)
-        # Tính tỷ lệ %
-        pred_percentages = pred_counts / pred_counts.sum() * 100
+        num_classes = 40
+        
+        # Tính confusion matrix
+        cm = confusion_matrix(all_targets_np, all_preds_np, labels=range(num_classes))
 
-        print("=== Percentage of predictions per class ===")
-        for k, v in self.eoeid2waveid.items():
-            print(f"Class {v}: {pred_percentages[v]:.2f}%")
-        # for class_id, pct in enumerate(pred_percentages):
-        #     print(f"Class {class_id}: {pct:.2f}%")
+        # Tính accuracy theo từng class:
+        class_accuracies = {}
+
+        for i, class_label in enumerate(range(num_classes)):
+            true_positive = cm[i, i]  # Số lần class này được dự đoán đúng
+            total_samples = cm[i, :].sum()  # Tổng số mẫu thuộc class này
+            
+            if total_samples == 0:
+                acc = 0.0  # Tránh chia cho 0 nếu không có mẫu nào
+            else:
+                acc = (true_positive / total_samples) * 100  # Tính % accuracy
+            
+            class_accuracies[class_label] = acc
+
+        # Hiển thị kết quả
+        print("\n=== Accuracy theo từng class ===")
+        for class_id, acc in class_accuracies.items():
+            print(f"Class {class_id}: {acc:.2f}%")
 
         eoeid2waveid_reverse = {v: k for k, v in self.eoeid2waveid.items()}
         
@@ -804,13 +817,13 @@ class Manager(object):
 
         # Tính accuracy cho mỗi task
         task_accuracies = {}
-        max_task_id = max(total_by_task.keys())  # Số task lớn nhất
-        for task_id in range(max_task_id + 1):
-            if total_by_task[task_id] == 0:
-                acc = 0.0
+        max_task_id = 9  # Số task lớn nhất
+        for task_id_ in range(max_task_id + 1):
+            if total_by_task[task_id_] == 0:
+                acc = -1
             else:
-                acc = correct_by_task[task_id] / total_by_task[task_id]
-            task_accuracies[task_id] = acc
+                acc = correct_by_task[task_id_] / total_by_task[task_id_]
+            task_accuracies[task_id_] = acc
 
         print("\n=== Accuracy theo task (mỗi task gồm 4 class) ===")
         for t_id, acc in task_accuracies.items():
@@ -820,8 +833,6 @@ class Manager(object):
         # 2) Tính confusion matrix
         # ----------------------------------------------------------------
         cm = confusion_matrix(all_targets, all_preds, labels=range(num_classes))
-        # print("\n=== Confusion Matrix ===")
-        # print(cm)
         
         # Lưu dưới dạng list để ghi ra file JSON
         cm_task_list = cm.tolist()
