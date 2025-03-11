@@ -15,8 +15,11 @@ import torch.nn.functional as F
 
 import random
 import numpy as np
+import json
 
 from sklearn.mixture import GaussianMixture
+from sklearn.metrics import confusion_matrix
+from collections import defaultdict
 
 from tqdm import tqdm, trange
 import pickle
@@ -511,6 +514,10 @@ class Manager(object):
         # initialization
         sampled = 0
         total_hits = np.zeros(4)
+        
+        # Chuẩn bị list để tính ma trận nhầm lẫn và % dự đoán
+        all_targets = []
+        all_preds   = []
 
         # testing
         for step, (labels, tokens, _) in enumerate(td):
@@ -552,6 +559,9 @@ class Manager(object):
                 reps = prompted_classifier(prompted_encoder_out["x_encoded"])
                 probs = F.softmax(reps, dim=1)
                 _, pred = probs.max(1)
+                
+                all_targets.extend(targets.cpu().numpy().tolist())
+                all_preds.extend(pred.cpu().numpy().tolist())
 
                 # accuracy_2
                 total_hits[2] += (pred == targets).float().sum().data.cpu().numpy().item()
@@ -578,9 +588,82 @@ class Manager(object):
             except:
                 sampled -= len(labels)
                 continue
+            
+        all_targets_np = np.array(all_targets)  # Ground truth labels
+        all_preds_np = np.array(all_preds)
         
-        return total_hits / sampled
+        num_classes = 40
+        
+        # Tính confusion matrix
+        cm = confusion_matrix(all_targets_np, all_preds_np, labels=range(num_classes))
 
+        # Tính accuracy theo từng class:
+        class_accuracies = {}
+
+        for i, class_label in enumerate(range(num_classes)):
+            true_positive = cm[i, i]  # Số lần class này được dự đoán đúng
+            total_samples = cm[i, :].sum()  # Tổng số mẫu thuộc class này
+            
+            if total_samples == 0:
+                acc = 0.0  # Tránh chia cho 0 nếu không có mẫu nào
+            else:
+                acc = (true_positive / total_samples) * 100  # Tính % accuracy
+            
+            class_accuracies[class_label] = acc
+
+        # Hiển thị kết quả
+        print("\n=== Accuracy theo từng class ===")
+        for class_id, acc in class_accuracies.items():
+            print(f"Class {class_id}: {acc:.2f}%")
+
+        eoeid2waveid_reverse = {v: k for k, v in self.eoeid2waveid.items()}
+        
+        # 2) Accuracy từng task (4 class / task)
+        correct_by_task = defaultdict(int)
+        total_by_task   = defaultdict(int)
+
+        # Duyệt từng mẫu, xác định task dựa trên target
+        for t, p in zip(all_targets, all_preds):
+            task_t = eoeid2waveid_reverse[t] // 4  # Mỗi 4 class là 1 task
+            total_by_task[task_t] += 1
+            if p == t:
+                correct_by_task[task_t] += 1
+
+        # Tính accuracy cho mỗi task
+        task_accuracies = {}
+        max_task_id = 9  # Số task lớn nhất
+        for task_id_ in range(max_task_id + 1):
+            if total_by_task[task_id_] == 0:
+                acc = -1
+            else:
+                acc = correct_by_task[task_id_] / total_by_task[task_id_]
+            task_accuracies[task_id_] = acc
+
+        print("\n=== Accuracy theo task (mỗi task gồm 4 class) ===")
+        for t_id, acc in task_accuracies.items():
+            print(f"Task {t_id}: {acc:.3f} (correct {correct_by_task[t_id]}/{total_by_task[t_id]})")
+
+        # ----------------------------------------------------------------
+        # 2) Tính confusion matrix
+        # ----------------------------------------------------------------
+        cm = confusion_matrix(all_targets, all_preds, labels=range(num_classes))
+        
+        # Lưu dưới dạng list để ghi ra file JSON
+        cm_task_list = cm.tolist()
+
+        folder_name = "CM"
+        os.makedirs(folder_name, exist_ok=True)  # Tạo folder CM nếu chưa có
+        
+        # Ghi ra file JSON tên "cm_task_{task_id}.json"
+        filename = f"CM/cm_task_{task_id}.json"
+        with open(filename, "w") as f:
+            json.dump(cm_task_list, f, indent=2)
+
+        print(f"Confusion matrix for Task {task_id} đã lưu vào '{filename}'")
+
+        return total_hits / sampled
+    
+    
     def train(self, args):
         # initialize test results list
         test_cur = []
