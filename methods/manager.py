@@ -16,8 +16,12 @@ import torch.nn.functional as F
 
 import random
 import numpy as np
+import json
 
 from sklearn.mixture import GaussianMixture
+from sklearn.metrics import confusion_matrix
+from collections import defaultdict
+
 
 from tqdm import tqdm, trange
 import pickle
@@ -695,6 +699,10 @@ class Manager(object):
         # initialization
         sampled = 0
         total_hits = np.zeros(4)
+        
+        # Chuẩn bị list để tính ma trận nhầm lẫn và % dự đoán
+        all_targets = []
+        all_preds   = []
 
         # testing
         for step, (labels, tokens, _) in enumerate(td):
@@ -736,6 +744,9 @@ class Manager(object):
                 reps = prompted_classifier(prompted_encoder_out["x_encoded"])
                 probs = F.softmax(reps, dim=1)
                 _, pred = probs.max(1)
+                
+                all_targets.extend(targets.cpu().numpy().tolist())
+                all_preds.extend(pred.cpu().numpy().tolist())
 
                 # accuracy_2
                 total_hits[2] += (pred == targets).float().sum().data.cpu().numpy().item()
@@ -762,6 +773,61 @@ class Manager(object):
             except:
                 sampled -= len(labels)
                 continue
+            
+        all_preds_np = np.array(all_preds)
+        num_classes  = int(all_preds_np.max() + 1)  # hoặc bạn có thể set cứng nếu biết trước
+        
+        # Đếm số lần mỗi class được dự đoán
+        pred_counts = np.bincount(all_preds_np, minlength=num_classes)
+        # Tính tỷ lệ %
+        pred_percentages = pred_counts / pred_counts.sum() * 100
+
+        print("=== Percentage of predictions per class ===")
+        for class_id, pct in enumerate(pred_percentages):
+            print(f"Class {class_id}: {pct:.2f}%")
+
+        # 2) Accuracy từng task (4 class / task)
+        correct_by_task = defaultdict(int)
+        total_by_task   = defaultdict(int)
+
+        # Duyệt từng mẫu, xác định task dựa trên target
+        for t, p in zip(all_targets, all_preds):
+            task_t = t // 4  # Mỗi 4 class là 1 task
+            total_by_task[task_t] += 1
+            if p == t:
+                correct_by_task[task_t] += 1
+
+        # Tính accuracy cho mỗi task
+        task_accuracies = {}
+        max_task_id = max(total_by_task.keys())  # Số task lớn nhất
+        for task_id in range(max_task_id + 1):
+            if total_by_task[task_id] == 0:
+                acc = 0.0
+            else:
+                acc = correct_by_task[task_id] / total_by_task[task_id]
+            task_accuracies[task_id] = acc
+
+        print("\n=== Accuracy theo task (mỗi task gồm 4 class) ===")
+        for t_id, acc in task_accuracies.items():
+            print(f"Task {t_id}: {acc:.3f} (correct {correct_by_task[t_id]}/{total_by_task[t_id]})")
+
+        # ----------------------------------------------------------------
+        # 2) Tính confusion matrix
+        # ----------------------------------------------------------------
+        cm = confusion_matrix(all_targets, all_preds, labels=range(num_classes))
+        # print("\n=== Confusion Matrix ===")
+        # print(cm)
+        
+        # Lưu dưới dạng list để ghi ra file JSON
+        cm_task_list = cm.tolist()
+
+        # Ghi ra file JSON tên "cm_task_{task_id}.json"
+        filename = f"CM/cm_task_{task_id}.json"
+        with open(filename, "w") as f:
+            json.dump(cm_task_list, f, indent=2)
+
+        print(f"Confusion matrix for Task {task_id} đã lưu vào '{filename}'")
+
         
         return total_hits / sampled
 
@@ -842,10 +908,10 @@ class Manager(object):
                 self.train_encoder(args, encoder, cur_training_data, seen_descriptions, task_id=steps, beta=args.contrastive_loss_coeff)
 
             # new prompt pool
-            if args.use_general_pp == 1:
-                self.prompt_pools.append(General_Prompt(args).to(args.device))
-            else:
-                self.prompt_pools.append(Prompt(args).to(args.device))
+            # if args.use_general_pp == 1:
+            #     self.prompt_pools.append(General_Prompt(args).to(args.device))
+            # else:
+            self.prompt_pools.append(Prompt(args).to(args.device))
             self.train_prompt_pool(args, encoder, self.prompt_pools[-1], 
                                    cur_training_data, seen_descriptions,
                                    task_id=steps, beta=args.contrastive_loss_coeff)
