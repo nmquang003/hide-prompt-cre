@@ -821,6 +821,9 @@ class Manager(object):
         # Lưu dưới dạng list để ghi ra file JSON
         cm_task_list = cm.tolist()
 
+        folder_name = "CM"
+        os.makedirs(folder_name, exist_ok=True)  # Tạo folder CM nếu chưa có
+        
         # Ghi ra file JSON tên "cm_task_{task_id}.json"
         filename = f"CM/cm_task_{task_id}.json"
         with open(filename, "w") as f:
