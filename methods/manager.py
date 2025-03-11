@@ -810,7 +810,6 @@ class Manager(object):
         # Duyệt từng mẫu, xác định task dựa trên target
         for t, p in zip(all_targets, all_preds):
             task_t = eoeid2waveid_reverse[t] // 4  # Mỗi 4 class là 1 task
-            task_t = t // 4  # Mỗi 4 class là 1 task
             total_by_task[task_t] += 1
             if p == t:
                 correct_by_task[task_t] += 1
