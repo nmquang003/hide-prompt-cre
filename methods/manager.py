@@ -629,6 +629,10 @@ class Manager(object):
             if p == t:
                 correct_by_task[task_t] += 1
 
+        folder_name = "Task_Accuracies"
+        os.makedirs(folder_name, exist_ok=True)
+        filename = f"{folder_name}/task_accuracies_{task_id}.json"
+
         # Tính accuracy cho mỗi task
         task_accuracies = {}
         max_task_id = 9  # Số task lớn nhất
@@ -638,6 +642,11 @@ class Manager(object):
             else:
                 acc = correct_by_task[task_id_] / total_by_task[task_id_]
             task_accuracies[task_id_] = acc
+
+        with open(filename, "w") as f:
+            json.dump(task_accuracies, f, indent=2)
+
+        print(f"Task accuracies đã được lưu vào '{filename}'")
 
         print("\n=== Accuracy theo task (mỗi task gồm 4 class) ===")
         for t_id, acc in task_accuracies.items():
