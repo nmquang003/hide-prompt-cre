@@ -783,15 +783,20 @@ class Manager(object):
         pred_percentages = pred_counts / pred_counts.sum() * 100
 
         print("=== Percentage of predictions per class ===")
-        for class_id, pct in enumerate(pred_percentages):
-            print(f"Class {class_id}: {pct:.2f}%")
+        for k, v in self.eoeid2waveid.items():
+            print(f"Class {v}: {pred_percentages[v]:.2f}%")
+        # for class_id, pct in enumerate(pred_percentages):
+        #     print(f"Class {class_id}: {pct:.2f}%")
 
+        eoeid2waveid_reverse = {v: k for k, v in self.eoeid2waveid.items()}
+        
         # 2) Accuracy từng task (4 class / task)
         correct_by_task = defaultdict(int)
         total_by_task   = defaultdict(int)
 
         # Duyệt từng mẫu, xác định task dựa trên target
         for t, p in zip(all_targets, all_preds):
+            task_t = eoeid2waveid_reverse[t] // 4  # Mỗi 4 class là 1 task
             task_t = t // 4  # Mỗi 4 class là 1 task
             total_by_task[task_t] += 1
             if p == t:
