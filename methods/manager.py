@@ -683,7 +683,7 @@ class Manager(object):
     @torch.no_grad()
     def cal_consine_description(self, args, encoder, all_description):
         description_out = {}
-        description_matrix = [None]*40
+        description_matrix = [None]* (args.rel_per_task * args.num_tasks)
         
         rel2id = dict()
         with torch.no_grad():
@@ -907,6 +907,29 @@ class Manager(object):
                 sampled -= len(labels)
                 continue
         
+        correct_by_task = defaultdict(int)
+        total_by_task   = defaultdict(int)
+
+        # Duyệt từng mẫu, xác định task dựa trên target
+        for t, p in zip(all_targets, all_preds):
+            task_t = t // args.rel_per_task  # Mỗi 4 class là 1 task
+            total_by_task[task_t] += 1
+            if p == t:
+                correct_by_task[task_t] += 1
+                
+        task_accuracies = {}
+        max_task_id = args.num_tasks - 1
+        for task_id_ in range(max_task_id + 1):
+            if total_by_task[task_id_] == 0:
+                acc = -1
+            else:
+                acc = correct_by_task[task_id_] / total_by_task[task_id_]
+            task_accuracies[task_id_] = acc
+
+        print("\n=== Accuracy theo task (mỗi task gồm 4 class) ===")
+        for t_id, acc in task_accuracies.items():
+            print(f"Task {t_id}: {acc:.3f} (correct {correct_by_task[t_id]}/{total_by_task[t_id]})")
+        
         return all_targets, all_preds
 
     def train(self, args):
@@ -1075,7 +1098,7 @@ class Manager(object):
                     total_all_targets.extend(temp_targets)
                     total_all_preds.extend(temp_preds)
                     
-                all_labels = range(40)
+                all_labels = range((args.rel_per_task * args.num_tasks))
                 # Tính ma trận confusion matrix
                 conf_matrix = confusion_matrix(total_all_targets, total_all_preds, labels=all_labels)
 
