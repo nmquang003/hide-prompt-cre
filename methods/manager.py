@@ -1075,8 +1075,9 @@ class Manager(object):
                     total_all_targets.extend(temp_targets)
                     total_all_preds.extend(temp_preds)
                     
+                all_labels = range(40)
                 # Tính ma trận confusion matrix
-                conf_matrix = confusion_matrix(total_all_targets, total_all_preds)
+                conf_matrix = confusion_matrix(total_all_targets, total_all_preds, labels=all_labels)
 
                 # In kết quả
                 print("Confusion Matrix:")
