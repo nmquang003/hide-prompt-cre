@@ -516,6 +516,98 @@ class Manager(object):
         total_hits = np.zeros(4)
         
         # Chuẩn bị list để tính ma trận nhầm lẫn và % dự đoán
+
+        # testing
+        for step, (labels, tokens, _) in enumerate(td):
+            try:
+                sampled += len(labels)
+                targets = labels.type(torch.LongTensor).to(args.device)
+                tokens = torch.stack([x.to(args.device) for x in tokens], dim=0)
+
+                # NgoDinhLuyen EoE
+                if args.eoe_tii == "yes":
+                    pool_ids, pred  = self.choose_indices_eoe_tii(args, encoder, tokens, labels, batch_size)
+                else:
+                    pool_ids, pred = self.choose_indices_wave(args, encoder, tokens, classifier)
+                # NgoDinhLuyen EoE
+
+                # encoder forward
+                encoder_out = encoder(tokens)
+
+                # # prediction
+                # reps = classifier(encoder_out["x_encoded"])
+                # probs = F.softmax(reps, dim=1)
+                # _, pred = probs.max(1)
+
+                # accuracy_0
+                total_hits[0] += (pred == targets).float().sum().data.cpu().numpy().item()
+
+                # pool_ids
+                # pool_ids = [self.id2taskid[int(x)] for x in pred]
+                for i, pool_id in enumerate(pool_ids):
+                    total_hits[1] += pool_id == self.id2taskid[int(labels[i])]
+
+                # get pools
+                prompt_pools = [self.prompt_pools[x] for x in pool_ids]
+
+                # prompted encoder forward
+                prompted_encoder_out = encoder(tokens, None, encoder_out["x_encoded"], prompt_pools)
+
+                # prediction
+                reps = prompted_classifier(prompted_encoder_out["x_encoded"])
+                probs = F.softmax(reps, dim=1)
+                _, pred = probs.max(1)
+                
+
+                # accuracy_2
+                total_hits[2] += (pred == targets).float().sum().data.cpu().numpy().item()
+
+                # pool_ids
+                pool_ids = [self.id2taskid[int(x)] for x in labels]
+
+                # get pools
+                prompt_pools = [self.prompt_pools[x] for x in pool_ids]
+
+                # prompted encoder forward
+                prompted_encoder_out = encoder(tokens, None, encoder_out["x_encoded"], prompt_pools)
+
+                # prediction
+                reps = prompted_classifier(prompted_encoder_out["x_encoded"])
+                probs = F.softmax(reps, dim=1)
+                _, pred = probs.max(1)
+
+                # accuracy_3
+                total_hits[3] += (pred == targets).float().sum().data.cpu().numpy().item()
+
+                # display
+                td.set_postfix(acc=np.round(total_hits / sampled, 3))
+            except:
+                sampled -= len(labels)
+                continue
+        
+        return total_hits / sampled
+
+    @torch.no_grad()
+    def evaluate_strict_model_ouput_matrix(self, args, encoder, classifier, prompted_classifier, test_data, name, task_id):
+        # models evaluation mode
+        encoder.eval()
+        classifier.eval()
+        
+        # NgoDinhLuyen EoE
+        batch_size = 1
+        # NgoDinhLuyen EoE
+
+        # data loader for test set
+        data_loader = get_data_loader(args, test_data, batch_size=batch_size, shuffle=False)
+
+        # tqdm
+        td = tqdm(data_loader, desc=name)
+
+        # initialization
+        sampled = 0
+        total_hits = np.zeros(4)
+        
+        # Chuẩn bị list để tính ma trận nhầm lẫn và % dự đoán
         all_targets = []
         all_preds   = []
 
@@ -532,7 +624,7 @@ class Manager(object):
                 else:
                     pool_ids, pred = self.choose_indices_wave(args, encoder, tokens, classifier)
                 # NgoDinhLuyen EoE
-
+                
                 # encoder forward
                 encoder_out = encoder(tokens)
 
@@ -588,91 +680,9 @@ class Manager(object):
             except:
                 sampled -= len(labels)
                 continue
-            
-        all_targets_np = np.array(all_targets)  # Ground truth labels
-        all_preds_np = np.array(all_preds)
         
-        num_classes = 40
-        
-        # Tính confusion matrix
-        cm = confusion_matrix(all_targets_np, all_preds_np, labels=range(num_classes))
-
-        # Tính accuracy theo từng class:
-        class_accuracies = {}
-
-        for i, class_label in enumerate(range(num_classes)):
-            true_positive = cm[i, i]  # Số lần class này được dự đoán đúng
-            total_samples = cm[i, :].sum()  # Tổng số mẫu thuộc class này
-            
-            if total_samples == 0:
-                acc = 0.0  # Tránh chia cho 0 nếu không có mẫu nào
-            else:
-                acc = (true_positive / total_samples) * 100  # Tính % accuracy
-            
-            class_accuracies[class_label] = acc
-
-        # Hiển thị kết quả
-        print("\n=== Accuracy theo từng class ===")
-        for class_id, acc in class_accuracies.items():
-            print(f"Class {class_id}: {acc:.2f}%")
-
-        eoeid2waveid_reverse = {v: k for k, v in self.eoeid2waveid.items()}
-        
-        # 2) Accuracy từng task (4 class / task)
-        correct_by_task = defaultdict(int)
-        total_by_task   = defaultdict(int)
-
-        # Duyệt từng mẫu, xác định task dựa trên target
-        for t, p in zip(all_targets, all_preds):
-            task_t = eoeid2waveid_reverse[t] // 4  # Mỗi 4 class là 1 task
-            total_by_task[task_t] += 1
-            if p == t:
-                correct_by_task[task_t] += 1
-
-        folder_name = "Task_Accuracies"
-        os.makedirs(folder_name, exist_ok=True)
-        filename = f"{folder_name}/task_accuracies_{task_id}.json"
-
-        # Tính accuracy cho mỗi task
-        task_accuracies = {}
-        max_task_id = 9  # Số task lớn nhất
-        for task_id_ in range(max_task_id + 1):
-            if total_by_task[task_id_] == 0:
-                acc = -1
-            else:
-                acc = correct_by_task[task_id_] / total_by_task[task_id_]
-            task_accuracies[task_id_] = acc
-
-        with open(filename, "w") as f:
-            json.dump(task_accuracies, f, indent=2)
-
-        print(f"Task accuracies đã được lưu vào '{filename}'")
-
-        print("\n=== Accuracy theo task (mỗi task gồm 4 class) ===")
-        for t_id, acc in task_accuracies.items():
-            print(f"Task {t_id}: {acc:.3f} (correct {correct_by_task[t_id]}/{total_by_task[t_id]})")
-
-        # ----------------------------------------------------------------
-        # 2) Tính confusion matrix
-        # ----------------------------------------------------------------
-        cm = confusion_matrix(all_targets, all_preds, labels=range(num_classes))
-        
-        # Lưu dưới dạng list để ghi ra file JSON
-        cm_task_list = cm.tolist()
-
-        folder_name = "CM"
-        os.makedirs(folder_name, exist_ok=True)  # Tạo folder CM nếu chưa có
-        
-        # Ghi ra file JSON tên "cm_task_{task_id}.json"
-        filename = f"CM/cm_task_{task_id}.json"
-        with open(filename, "w") as f:
-            json.dump(cm_task_list, f, indent=2)
-
-        print(f"Confusion matrix for Task {task_id} đã lưu vào '{filename}'")
-
-        return total_hits / sampled
-    
-    
+        return all_targets, all_preds
+     
     def train(self, args):
         # initialize test results list
         test_cur = []
@@ -818,6 +828,9 @@ class Manager(object):
                 test_cur.append(cur_acc)
                 test_total.append(total_acc)
 
+                total_all_targets = []
+                total_all_preds = []
+
                 print("===SWAG===")
                 results = []
                 for i, i_th_test_data in enumerate(all_tasks):
@@ -826,6 +839,33 @@ class Manager(object):
                         self.evaluate_strict_model(args, encoder, swag_classifier, swag_prompted_classifier, 
                                                    i_th_test_data, f"test_task_{i+1}", steps)
                     ])
+                    
+                    temp_targets, temp_preds = self.evaluate_strict_model_ouput_matrix(args, encoder, swag_classifier, swag_prompted_classifier, 
+                                                   i_th_test_data, f"test_task_{i+1}", steps)
+                    total_all_targets.extend(temp_targets)
+                    total_all_preds.extend(temp_preds)
+                    
+                # Tính ma trận confusion matrix
+                conf_matrix = confusion_matrix(total_all_targets, total_all_preds)
+
+                # In kết quả
+                print("Confusion Matrix:")
+                print(conf_matrix)
+                
+                conf_matrix_dict = conf_matrix.tolist()
+
+                # Đường dẫn thư mục cần tạo
+                folder_path = "CM"
+
+                # Tạo thư mục nếu chưa tồn tại
+                os.makedirs(folder_path, exist_ok=True)
+
+                
+                # Lưu vào file JSON
+                json_filename = f"CM/confusion_matrix_{steps}.json"
+                with open(json_filename, "w") as json_file:
+                    json.dump(conf_matrix_dict, json_file, indent=4)        
+            
                 cur_acc = results[-1][1]
                 total_acc = sum([result[0] * result[1] for result in results]) / sum([result[0] for result in results])
                 print(f"current test accuracy: {cur_acc}")
