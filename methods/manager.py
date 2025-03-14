@@ -909,10 +909,12 @@ class Manager(object):
         
         correct_by_task = defaultdict(int)
         total_by_task   = defaultdict(int)
+        
+        waveid2eoe = {v: k for k, v in self.eoeid2waveid.items()}
 
         # Duyệt từng mẫu, xác định task dựa trên target
         for t, p in zip(all_targets, all_preds):
-            task_t = t // args.rel_per_task  # Mỗi 4 class là 1 task
+            task_t = waveid2eoe[t] // args.rel_per_task  # Mỗi 4 class là 1 task
             total_by_task[task_t] += 1
             if p == t:
                 correct_by_task[task_t] += 1
