@@ -6,7 +6,7 @@ from methods.manager import Manager
 import wandb
 from dotenv import load_dotenv
 import os
-os.environ['WANDB_MODE'] = 'disabled' # disable wandb for this script
+# os.environ['WANDB_MODE'] = 'disabled' # disable wandb for this script
 
 import logging
 import sys
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     
     wandb.init(
         # set the wandb project where this run will be logged
-        project="Final_wave",
+        project="Final_wave_zt",
         name = args.run_name,
 
         # track hyperparameters and run metadata
