@@ -1,12 +1,10 @@
 #!/bin/bash
 
 device=0
-seeds=(2021 2121 2221 2321 2421 2521)
+seeds=(2021 2121 2221 2321 2421)
 combinations=(
     "TACRED 20 15 200 8 4 8 3" # w/o description
-    "TACRED 20 15 200 8 4 8 5" # w/o description
-    "TACRED 20 15 200 8 4 8 7" # w/o description
-    "TACRED 20 15 200 8 4 8 9" # w/o description
+    "FewRel 20 15 200 8 4 8 3" # w/o description
 )
 
 # Loop over each combination

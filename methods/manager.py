@@ -269,9 +269,9 @@ class Manager(object):
         for e_id in range(args.encoder_epochs):
             train_data(data_loader, f"train_encoder_epoch_{e_id + 1}", e_id)
 
-    def train_prompt_pool(self, args, encoder, prompt_pool, training_data, seen_description, task_id, beta=0.1):
+    def train_prompt_pool(self, args, encoder, prompt_pool, classifier, training_data, seen_description, task_id, beta=0.1):
         encoder.eval()
-        classifier = Classifier(args=args).to(args.device)
+        # classifier = Classifier(args=args).to(args.device)
         classifier.train()
         modules = [classifier, prompt_pool]
         modules = nn.ModuleList(modules)
@@ -800,6 +800,8 @@ class Manager(object):
         all_train_tasks = []
         all_tasks = []
         seen_data = {}
+        
+        prompted_classifier = Classifier(args=args).to(args.device)
 
         for steps, (training_data, valid_data, test_data, current_relations, 
                     historic_test_data, seen_relations, seen_descriptions) in enumerate(sampler):
@@ -846,7 +848,8 @@ class Manager(object):
                 self.prompt_pools.append(General_Prompt(args).to(args.device))
             else:
                 self.prompt_pools.append(Prompt(args).to(args.device))
-            self.train_prompt_pool(args, encoder, self.prompt_pools[-1], 
+            self.train_prompt_pool(args, encoder, self.prompt_pools[-1],
+                                   prompted_classifier, 
                                    cur_training_data, seen_descriptions,
                                    task_id=steps, beta=args.contrastive_loss_coeff)
 
@@ -890,12 +893,12 @@ class Manager(object):
                 swag_classifier = SWAG(Classifier, no_cov_mat=not (args.cov_mat), max_num_models=args.max_num_models, args=args)
 
                 # classifier
-                prompted_classifier = Classifier(args=args).to(args.device)
-                swag_prompted_classifier = SWAG(Classifier, no_cov_mat=not (args.cov_mat), max_num_models=args.max_num_models, args=args)
+                # prompted_classifier = Classifier(args=args).to(args.device)
+                # swag_prompted_classifier = SWAG(Classifier, no_cov_mat=not (args.cov_mat), max_num_models=args.max_num_models, args=args)
 
                 # train
                 self.train_classifier(args, classifier, swag_classifier, self.replayed_key, "train_classifier_epoch_")
-                self.train_classifier(args, prompted_classifier, swag_prompted_classifier, self.replayed_data, "train_prompted_classifier_epoch_")
+                # self.train_classifier(args, prompted_classifier, swag_prompted_classifier, self.replayed_data, "train_prompted_classifier_epoch_")
 
                 # prediction
                 print("===NON-SWAG===")
@@ -918,7 +921,9 @@ class Manager(object):
                 for i, i_th_test_data in enumerate(all_tasks):
                     results.append([
                         len(i_th_test_data), 
-                        self.evaluate_strict_model(args, encoder, swag_classifier, swag_prompted_classifier, 
+                        # self.evaluate_strict_model(args, encoder, swag_classifier, swag_prompted_classifier, 
+                        #                            i_th_test_data, f"test_task_{i+1}", steps)
+                        self.evaluate_strict_model(args, encoder, swag_classifier, prompted_classifier, 
                                                    i_th_test_data, f"test_task_{i+1}", steps)
                     ])
                 cur_acc = results[-1][1]
