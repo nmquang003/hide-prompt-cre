@@ -439,6 +439,19 @@ class Manager(object):
         for e_id in range(args.prompt_pool_epochs):
             train_data(data_loader, f"train_prompt_pool_epoch_{e_id + 1}", e_id)
 
+    def fit_gmm_safe(self, tensor, n_components, seed):
+        X = tensor.detach().cpu().numpy().astype(np.float64)          # 1) float64
+        n_comp = max(1, min(n_components, X.shape[0] - 1))            # 3) ≤ N-1
+        return GaussianMixture(
+            n_components=n_comp,
+            covariance_type='diag',                                    # 2) ổn định
+            reg_covar=1e-4,                                            # 2) regularize
+            n_init=3,
+            max_iter=500,
+            init_params='kmeans',
+            random_state=seed
+        ).fit(X)
+
     @torch.no_grad()
     def sample_memorized_data(self, args, encoder, prompt_pool, relation_data, name, task_id):
         encoder.eval()
@@ -463,8 +476,10 @@ class Manager(object):
         x_key = torch.cat(x_key, dim=0)
         x_encoded = torch.cat(x_encoded, dim=0)
 
-        key_mixture = GaussianMixture(n_components=args.gmm_num_components, random_state=args.seed).fit(x_key.cpu().detach().numpy())
-        encoded_mixture = GaussianMixture(n_components=args.gmm_num_components, random_state=args.seed).fit(x_encoded.cpu().detach().numpy())
+        # key_mixture = GaussianMixture(n_components=args.gmm_num_components, random_state=args.seed).fit(x_key.cpu().detach().numpy())
+        # encoded_mixture = GaussianMixture(n_components=args.gmm_num_components, random_state=args.seed).fit(x_encoded.cpu().detach().numpy())
+        key_mixture     = self.fit_gmm_safe(x_key,     args.gmm_num_components, args.seed)
+        encoded_mixture = self.fit_gmm_safe(x_encoded, args.gmm_num_components, args.seed)
 
         if args.gmm_num_components == 1:
             key_mixture.weights_[0] = 1.0
