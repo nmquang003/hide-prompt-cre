@@ -548,8 +548,9 @@ class Manager(object):
         ### Rubutal
         # Save prelogits and labels to disk
         if expert_id == 0:
+            os.mkdir("./rebutal")
             torch.save(prelogits, "./rebutal/prelogits.pt")
-            torch.save(labels, "/rebutal/prelogits.pt")
+            torch.save(labels, "./rebutal/prelogits.pt")
             print('Saved prelogits and labels to disk')
             exit(0)
         ### Rubutal
