@@ -709,7 +709,7 @@ class Manager(object):
 
         # initialization
         sampled = 0
-        total_hits = np.zeros(4)
+        total_hits = np.zeros(5)
 
         # testing
         for step, (labels, tokens, _) in enumerate(td):
@@ -717,6 +717,9 @@ class Manager(object):
                 sampled += len(labels)
                 targets = labels.type(torch.LongTensor).to(args.device)
                 tokens = torch.stack([x.to(args.device) for x in tokens], dim=0)
+                
+                total_true_task = np.zeros(len(labels))
+                total_true_task_0 = np.zeros(len(labels))
 
                 # NgoDinhLuyen EoE
                 if args.eoe_tii == "yes":
@@ -740,6 +743,8 @@ class Manager(object):
                 # pool_ids = [self.id2taskid[int(x)] for x in pred]
                 for i, pool_id in enumerate(pool_ids):
                     total_hits[1] += pool_id == self.id2taskid[int(labels[i])]
+                    if (pool_id == self.id2taskid[int(labels[i])]):
+                        total_true_task[i] = 1
 
                 # get pools
                 prompt_pools = [self.prompt_pools[x] for x in pool_ids]
@@ -771,6 +776,8 @@ class Manager(object):
 
                 # accuracy_3
                 total_hits[3] += (pred == targets).float().sum().data.cpu().numpy().item()
+                
+                total_hits[4] += ((pred == targets) & (total_true_task == 0)).float().sum().data.cpu().numpy().item()
 
                 # display
                 td.set_postfix(acc=np.round(total_hits / sampled, 3))
@@ -953,6 +960,11 @@ class Manager(object):
                 print("accuracies:")
                 for x in test_cur:
                     print(x)
+                print("arverages:")
+                for x in test_total:
+                    print(x)
+                    acc_sum.append(x)
+                    
                 print("arverages:")
                 for x in test_total:
                     print(x)
