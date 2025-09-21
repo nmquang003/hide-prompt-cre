@@ -544,16 +544,6 @@ class Manager(object):
         prelogits = torch.tensor(prelogits)
         labels = torch.tensor(labels)
         labels_space = torch.unique(labels)
-        
-        ### Rubutal
-        # Save prelogits and labels to disk
-        if expert_id == 0:
-            os.mkdir("./rebutal")
-            torch.save(prelogits, "./rebutal/prelogits.pt")
-            torch.save(labels, "./rebutal/prelogits.pt")
-            print('Saved prelogits and labels to disk')
-            exit(0)
-        ### Rubutal
 
         task_mean = prelogits.mean(dim=0)
         task_cov = torch.cov((prelogits - task_mean).T)
