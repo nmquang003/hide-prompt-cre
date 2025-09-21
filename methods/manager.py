@@ -718,8 +718,7 @@ class Manager(object):
                 targets = labels.type(torch.LongTensor).to(args.device)
                 tokens = torch.stack([x.to(args.device) for x in tokens], dim=0)
                 
-                total_true_task = np.zeros(len(labels))
-                total_true_task_0 = np.zeros(len(labels))
+                total_true_task = torch.zeros(len(labels), dtype=torch.bool, device=args.device)
 
                 # NgoDinhLuyen EoE
                 if args.eoe_tii == "yes":
