@@ -1,7 +1,7 @@
 #!/bin/bash
 
 device=0
-seeds=(2121 2321)
+seeds=(2221)
 combinations=(
     "FewRel 20 15 200 8 4 8 3" # w/o description
 )

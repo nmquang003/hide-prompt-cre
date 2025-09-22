@@ -269,7 +269,7 @@ class Manager(object):
         for e_id in range(args.encoder_epochs):
             train_data(data_loader, f"train_encoder_epoch_{e_id + 1}", e_id)
 
-    def train_prompt_pool(self, args, encoder, prompt_pool, classifier, training_data, seen_description, task_id, beta=0.1):
+    def train_prompt_pool(self, args, encoder, prompt_pool, training_data, seen_description, task_id, beta=0.1):
         encoder.eval()
         classifier = Classifier(args=args).to(args.device)
         classifier.train()
