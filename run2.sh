@@ -1,9 +1,9 @@
 #!/bin/bash
 
 device=0
-seeds=(2021 2221 2421)
+seeds=(2021)
 combinations=(
-    "TACRED 20 15 200 8 4 8 3" # w/o description
+    "TACRED 1 1 4 8 4 8 3" # w/o description
 )
 
 # Loop over each combination
