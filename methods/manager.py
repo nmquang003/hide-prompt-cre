@@ -783,7 +783,6 @@ class Manager(object):
                 # display
                 td.set_postfix(acc=np.round(total_hits / sampled, 3))
             except:
-                total_hits[6] -= len(labels)
                 sampled -= len(labels)
                 continue
         
